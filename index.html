@@ -297,7 +297,7 @@ function t2u(t){
   return(i+f)/(N_PTS-1);
 }
 
-let smP=0,smB=0,smH=100,_lt=-1;
+let smP=2*D2R,smB=0,smH=100,_lt=-1;
 
 function interp(t){
   t=Math.min(DUR,Math.max(0,t));
@@ -323,42 +323,75 @@ function interp(t){
   let dh=b.hdg-a.hdg;if(dh>180)dh-=360;if(dh<-180)dh+=360;
   let tH=a.hdg+dh*f;if(tH<0)tH+=360;if(tH>=360)tH-=360;
 
-  // PITCH — DERIVED, not measured
-  // 1) FPA from spline tangent (actual 3D trajectory direction)
-  const tan3=curve.getTangent(Math.min(0.9999,Math.max(0.0001,u)));
-  const fpa=Math.atan2(tan3.y,Math.sqrt(tan3.x*tan3.x+tan3.z*tan3.z));
-  // 2) AOA estimate: column pushed forward → nose below flight path
-  //    Cruise: +2°. Dive with V/S -31k: ≈ -25°. Recovery: +5°.
-  let aoa=2*D2R;
-  if(t>=pts[DI].dt){
-    if(vs<-1000) aoa=(2-Math.min(27,Math.abs(vs)/30000*27))*D2R;
-    else if(vs>1000) aoa=(2+Math.min(5,vs/10000*5))*D2R;
+  // ── ATTITUDE TARGETS (phase-aware, physics-based) ──
+  const inCruise = t < pts[DI].dt - 1;
+  const inFDR    = t >= 271 && t < 291;
+  let tP, tB, fpa = 0;
+
+  if (inCruise) {
+    // Steady cruise: hold ~2° AOA, wings level. Lock visual altitude
+    // to the data so spline Y-jitter cannot produce attitude shake.
+    tP = 2 * D2R;
+    tB = 0;
+    pos.y = alt * FT2M * SC;
+  } else if (inFDR) {
+    // FDR disclosed phase (T-20s → FDR power loss):
+    // pitch -30°~-40°, roll >90°, dual control input.
+    // Use slow oscillations (period ~7-10s) — extreme attitude, not a tremor.
+    const p    = (t - 271) / 20;
+    const ramp = Math.min(1, p / 0.35);
+    // Pitch: ease into −33° dive with ±6° oscillation, period ~8s
+    tP = (2 + ramp * (-35 + 6 * Math.sin(p * 5 * Math.PI - 0.4))) * D2R;
+    // Bank: large slow excursion peaking ±88°, period ~10s
+    tB = ramp * 88 * D2R * Math.sin(p * 4 * Math.PI + 0.3);
+  } else {
+    // Post-FDR dive / recovery: derive from trajectory.
+    const tan3 = curve.getTangent(Math.min(0.9999, Math.max(0.0001, u)));
+    fpa = Math.atan2(tan3.y, Math.sqrt(tan3.x * tan3.x + tan3.z * tan3.z));
+    // AOA: column pushed forward → nose below flight path during dive.
+    let aoa = 2 * D2R;
+    if (vs < -1000)      aoa = (2 - Math.min(18, Math.abs(vs) / 30000 * 18)) * D2R;
+    else if (vs > 1000)  aoa = (2 + Math.min(4, vs / 10000 * 4)) * D2R;
+    tP = Math.max(-72 * D2R, Math.min(20 * D2R, fpa + aoa));
+    // Bank from heading rate (coordinated-turn proxy), conservative gain.
+    const hr = seg > 0 ? dh / seg : 0;
+    tB = Math.max(-55 * D2R, Math.min(55 * D2R, -hr * D2R * 4));
   }
-  let tP=fpa+aoa;
-  tP=Math.max(-85*D2R,Math.min(Math.PI/6,tP));
 
-  // Bank — DERIVED from heading rate
-  const hr=seg>0?dh/seg:0;
-  let tB=Math.max(-Math.PI/3,Math.min(Math.PI/3,-hr*D2R*6));
+  // ── Smoothing + aerodynamic rate limits ──
+  // Frame-rate independent low-pass; phase-tuned time constant.
+  const el = _lt >= 0 ? Math.abs(t - _lt) : 1/60; _lt = t;
+  const tau = inCruise ? 2.5 : (inFDR ? 0.7 : 1.1);
+  const al  = 1 - Math.exp(-el / tau);
+  // Realistic 737 LOC angular rates (deg/s).
+  const dPmax = (inFDR ? 30 : 18) * D2R * el;
+  const dBmax = (inFDR ? 75 : 50) * D2R * el;
+  const dHmax = (inCruise ? 4 : 22) * el;
 
-  // FDR DISCLOSED attitude override (column push T-20s to FDR stop T)
-  // NTSB FOIA: pitch -30°~-40°, roll >90°~180°, two pilots fighting for control
-  if(t>=271&&t<291){
-    const p=(t-271)/20;
-    const ramp=Math.min(1,p/0.15);
-    tP=-ramp*(25+10*Math.sin(p*6*Math.PI))*D2R;
-    tB=ramp*110*D2R*Math.sin(p*8*Math.PI+0.5);
+  let stepP = (tP - smP) * al;
+  if (stepP >  dPmax) stepP =  dPmax;
+  if (stepP < -dPmax) stepP = -dPmax;
+  let stepB = (tB - smB) * al;
+  if (stepB >  dBmax) stepB =  dBmax;
+  if (stepB < -dBmax) stepB = -dBmax;
+  smP += stepP;
+  smB += stepB;
+
+  let hd2 = tH - smH;
+  if (hd2 >  180) hd2 -= 360;
+  if (hd2 < -180) hd2 += 360;
+  let stepH = hd2 * al;
+  if (stepH >  dHmax) stepH =  dHmax;
+  if (stepH < -dHmax) stepH = -dHmax;
+  smH += stepH;
+  if (smH <    0) smH += 360;
+  if (smH >= 360) smH -= 360;
+
+  let gL = 1 + Math.abs(vs) / 30000 * 1.5;
+  if (inFDR) {
+    const p = (t - 271) / 20;
+    gL = 1 + Math.min(1, p / 0.35) * Math.abs(1.8 * Math.sin(p * 4 * Math.PI));
   }
-
-  // Exponential smoothing (frame-rate independent, tau=0.8s)
-  const el=_lt>=0?Math.abs(t-_lt):1/60;_lt=t;
-  const al=1-Math.exp(-el/0.8);
-  smP+=(tP-smP)*al;smB+=(tB-smB)*al;
-  let hd2=tH-smH;if(hd2>180)hd2-=360;if(hd2<-180)hd2+=360;
-  smH+=hd2*al;if(smH<0)smH+=360;if(smH>=360)smH-=360;
-
-  let gL=1+Math.abs(vs)/30000*2;
-  if(t>=271&&t<291){const p=(t-271)/20;gL=1+Math.min(1,p/0.15)*Math.abs(2.5*Math.sin(p*7*Math.PI));}
   let ph='CRUISE';
   if(t>=pts[DI].dt){
     if(vs>1000)ph='RECOVERY';
@@ -753,7 +786,7 @@ function updHUD(d){
 }
 
 /* ── controls ── */
-function reset(){lastEI=-1;S.userOrbit=false;impP.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});impP.length=0;smP=0;smB=0;smH=100;_lt=-1;
+function reset(){lastEI=-1;S.userOrbit=false;impP.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});impP.length=0;smP=2*D2R;smB=0;smH=100;_lt=-1;
   impacted=false;AG.visible=false;
   trails.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});trails.length=0;
 }
