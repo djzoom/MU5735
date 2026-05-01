@@ -93,12 +93,14 @@ canvas{display:block}
 .flash-red{animation:flashRed .6s ease}
 @keyframes flashAmber{0%{filter:drop-shadow(0 0 0 transparent)}30%{filter:drop-shadow(0 0 14px #ffaa44) drop-shadow(0 0 4px rgba(0,0,0,.85))}100%{filter:drop-shadow(0 0 4px rgba(0,0,0,.85))}}
 .flash-amber{animation:flashAmber .6s ease}
-/* Step A — Fuel switch part palette (mushroom-head lever style) */
+/* Step A — Fuel switch part palette (chunky mushroom-head lever, true 737 style) */
 .fsw-base{fill:#1a1a1a;stroke:#444;stroke-width:.6}
 .fsw-stem{fill:#888;stroke:#444;stroke-width:.4}
-.fsw-cap{fill:#0a0a0a;stroke:#666;stroke-width:.6}        /* mushroom cap */
-.fsw-cap-hi{fill:#444;stroke:none}                          /* highlight strip */
+.fsw-cap{fill:#0a0a0a;stroke:#555;stroke-width:.7}        /* chunky black knob */
+.fsw-cap-hi{fill:rgba(255,255,255,.18);stroke:none}         /* glossy highlight */
 .fsw-led{fill:#ff3333}
+.fsw-x line{stroke:#ff2222;stroke-width:1.5;stroke-linecap:round;filter:drop-shadow(0 0 1.5px #ff4444)}
+.fsw-x{opacity:0;transition:opacity .25s ease}
 .fsw-skirt-run{fill:#882222;stroke:#441010;stroke-width:.4}
 .fsw-skirt-active{fill:#ee5544;stroke:#882211;stroke-width:.6}
 .fsw-detent{stroke:#888;stroke-width:1.4;stroke-linecap:round}
@@ -280,14 +282,19 @@ canvas{display:block}
           <!-- Switch body / base mount -->
           <rect class="fsw-base" x="-7" y="-3" width="14" height="9" rx="1"/>
           <!-- Lever (rotates from -25° in RUN to +155° in CUTOFF, swing 180°) -->
-          <g id="fsw-1-tog" transform="rotate(-25)">
-            <rect class="fsw-stem" x="-1.4" y="-22" width="2.8" height="22" rx=".6"/>
-            <!-- Mushroom-head cap: flatter and wider than the stem -->
-            <ellipse class="fsw-cap" cx="0" cy="-26" rx="6.5" ry="3.6"/>
-            <!-- Subtle highlight on top of cap -->
-            <ellipse class="fsw-cap-hi" cx="0" cy="-27.4" rx="3.5" ry=".9"/>
-            <!-- Red LED indicator on top of cap -->
-            <circle class="fsw-led" cx="0" cy="-29" r="1.1"/>
+          <g id="fsw-1-tog" transform="rotate(-12)">
+            <rect class="fsw-stem" x="-1.6" y="-15" width="3.2" height="15" rx=".7"/>
+            <!-- Chunky mushroom cap: nearly spherical, slightly flattened -->
+            <ellipse class="fsw-cap" cx="0" cy="-19" rx="6.5" ry="5.5"/>
+            <!-- Glossy highlight -->
+            <ellipse class="fsw-cap-hi" cx="0" cy="-22.5" rx="3" ry="1.2"/>
+            <!-- Red LED indicator -->
+            <circle class="fsw-led" cx="0" cy="-22.5" r=".9"/>
+            <!-- Red X mark (lights up only in CUTOFF position) -->
+            <g id="fsw-1-x" class="fsw-x">
+              <line x1="-3.2" y1="-22" x2="3.2" y2="-16"/>
+              <line x1="3.2" y1="-22" x2="-3.2" y2="-16"/>
+            </g>
           </g>
           <!-- Skirt collar around the base (lifts vertically when actuating) -->
           <g id="fsw-1-skirt" transform="translate(0,0)">
@@ -308,11 +315,15 @@ canvas{display:block}
           <line class="fsw-detent" x1="-13" y1="0" x2="-5" y2="0"/>
           <line class="fsw-detent" x1="5" y1="0" x2="13" y2="0"/>
           <rect class="fsw-base" x="-7" y="-3" width="14" height="9" rx="1"/>
-          <g id="fsw-2-tog" transform="rotate(-25)">
-            <rect class="fsw-stem" x="-1.4" y="-22" width="2.8" height="22" rx=".6"/>
-            <ellipse class="fsw-cap" cx="0" cy="-26" rx="6.5" ry="3.6"/>
-            <ellipse class="fsw-cap-hi" cx="0" cy="-27.4" rx="3.5" ry=".9"/>
-            <circle class="fsw-led" cx="0" cy="-29" r="1.1"/>
+          <g id="fsw-2-tog" transform="rotate(-12)">
+            <rect class="fsw-stem" x="-1.6" y="-15" width="3.2" height="15" rx=".7"/>
+            <ellipse class="fsw-cap" cx="0" cy="-19" rx="6.5" ry="5.5"/>
+            <ellipse class="fsw-cap-hi" cx="0" cy="-22.5" rx="3" ry="1.2"/>
+            <circle class="fsw-led" cx="0" cy="-22.5" r=".9"/>
+            <g id="fsw-2-x" class="fsw-x">
+              <line x1="-3.2" y1="-22" x2="3.2" y2="-16"/>
+              <line x1="3.2" y1="-22" x2="-3.2" y2="-16"/>
+            </g>
           </g>
           <g id="fsw-2-skirt" transform="translate(0,0)">
             <ellipse class="fsw-skirt-run" cx="0" cy="-2" rx="9" ry="2.5"/>
@@ -1008,9 +1019,9 @@ function updFuelCard(t){
   //   tF ∈ [0,0.4]: rapid pivot 0°→180° (toggle flips through the fence)
   //   tF ∈ [0.4,1]: skirt resettles in CUTOFF position
   //   tF > 1      : CUTOFF, locked (toggle at 180°, skirt seated)
-  // Lever rotation: RUN = -25° (angled up-forward), CUTOFF = +155° (angled
-  // down-forward). Total swing 180°, must lift over the detent fence first.
-  let togDeg = -25;
+  // Lever rotation: RUN = -12° (slight forward tilt up), CUTOFF = +168°
+  // (slight forward tilt down). Total swing 180°. Must lift over detent fence.
+  let togDeg = -12;
   let skirtY = 0;
   let handOn = false;
   let status, statusColor;
@@ -1023,20 +1034,26 @@ function updFuelCard(t){
     status = 'PILOT LIFTS · 抬保险'; statusColor = '#ffaa44';
   } else if (tF < 0.4) {
     const p = tF / 0.4;
-    togDeg = -25 + 180 * p;          // rotate from -25° to +155°
+    togDeg = -12 + 180 * p;          // -12° → +168°
     skirtY = -6 + 4 * p;
     handOn = true;
     status = 'LEVER → CUTOFF · 切断'; statusColor = '#ff4444';
     if (!act.fuelFlashed) { flashEl(act.fuelSvg, 'flash-red'); act.fuelFlashed = true; }
   } else if (tF < 1) {
     const p = (tF - 0.4) / 0.6;
-    togDeg = 155;
+    togDeg = 168;
     skirtY = -2 + 2 * p;
     status = 'CUTOFF · LOCKED'; statusColor = '#ff5555';
   } else {
-    togDeg = 155;
+    togDeg = 168;
     status = 'ENG 1 + 2 · CUTOFF'; statusColor = '#ff5555';
   }
+  // Red X warning mark fades in once lever crosses the half-way point
+  const xOpacity = Math.max(0, Math.min(1, (togDeg - 70) / 50));
+  const x1 = document.getElementById('fsw-1-x');
+  const x2 = document.getElementById('fsw-2-x');
+  if (x1) x1.style.opacity = xOpacity.toFixed(2);
+  if (x2) x2.style.opacity = xOpacity.toFixed(2);
   act.fuel1Tog.setAttribute('transform', 'rotate(' + togDeg.toFixed(1) + ')');
   act.fuel2Tog.setAttribute('transform', 'rotate(' + togDeg.toFixed(1) + ')');
   act.fuel1Skirt.setAttribute('transform', 'translate(0,' + skirtY.toFixed(1) + ')');
