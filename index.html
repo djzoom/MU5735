@@ -111,6 +111,8 @@ canvas{display:block}
 /* Per-card placement */
 /* AP indicators sit just under the event banner (banner @ top:90, ~50px tall) */
 #card-ap   {top:148px; left:50%; --tx:-50%; transform:translateX(-50%)}
+/* Control-surface deflection bars — under AP, above the 3D scene centre */
+#card-surf {top:200px; left:50%; --tx:-50%; transform:translateX(-50%)}
 #card-fuel {bottom:130px; left:50%; --tx:-50%; transform:translateX(-50%)}
 #card-yoke-L{bottom:130px; left:35%;  --tx:-50%; transform:translateX(-50%)}
 #card-yoke-R{bottom:130px; right:35%; --tx:50%;  transform:translateX(50%)}
@@ -173,6 +175,20 @@ canvas{display:block}
 .yk-track{stroke:rgba(180,180,180,.4);stroke-width:.6;stroke-dasharray:2 2}
 .yk-neutral{stroke:rgba(160,255,180,.7);stroke-width:1.4;stroke-linecap:round}
 .kbd{display:inline-block;padding:1px 6px;background:rgba(0,0,0,.6);border:1px solid rgba(0,255,136,.6);border-radius:3px;color:#cdf2d6;font:bold 9px 'Courier New',monospace;margin:0 2px;text-shadow:none}
+/* Control-surface deflection bars */
+.surf-hdr{fill:#ffb088;font-size:8px;font-family:'Courier New',monospace;font-weight:bold;letter-spacing:.8px}
+.surf-lbl{fill:#cdf2d6;font-size:7px;font-family:'Courier New',monospace;font-weight:bold}
+.surf-val{fill:#ffe0b0;font-size:7px;font-family:'Courier New',monospace;font-weight:bold}
+.surf-val-grey{fill:#888;font-size:6.5px;font-family:'Courier New',monospace}
+.surf-bar-bg{fill:rgba(40,40,40,.5);stroke:rgba(180,180,180,.45);stroke-width:.4}
+.surf-bar-bg-grey{fill:rgba(40,40,40,.3);stroke:rgba(120,120,120,.3);stroke-width:.4}
+.surf-zero{stroke:#88ff88;stroke-width:1}
+.surf-zero-grey{stroke:#666;stroke-width:.7}
+.surf-bar{transition:width .25s,x .25s,fill .25s}
+.surf-bar.up{fill:#33aaff}        /* trailing edge up = positive */
+.surf-bar.dn{fill:#ff5544}        /* trailing edge down = negative */
+.surf-bar.flash{animation:blink .35s infinite}
+.surf-stat{fill:#ffd4a8;font-size:7.5px;font-family:'Courier New',monospace;font-weight:bold}
 /* Per-pilot force arrows (independent of mechanical position) */
 .yk-force{fill:none;stroke-width:2;stroke-linecap:round;opacity:0;transition:opacity .3s,stroke .3s}
 .yk-force.show{opacity:.95}
@@ -334,6 +350,39 @@ canvas{display:block}
 
     <!-- DUAL INPUT badge — center floater, only when both pilots applying force -->
     <div class="act-card" id="card-dual">★ DUAL INPUT &middot; 双重输入 ★</div>
+
+    <!-- CONTROL SURFACES — aileron/elevator/rudder deflection bars -->
+    <div class="act-card" id="card-surf">
+      <svg class="act-svg" width="280" height="86" viewBox="0 0 280 86" xmlns="http://www.w3.org/2000/svg">
+        <text x="140" y="10" text-anchor="middle" class="surf-hdr">CONTROL SURFACES &middot; 操纵面</text>
+        <!-- Aileron L bar -->
+        <text x="6" y="30" class="surf-lbl">AIL L</text>
+        <rect class="surf-bar-bg" x="38" y="24" width="80" height="8" rx="1"/>
+        <line class="surf-zero" x1="78" y1="22" x2="78" y2="34"/>
+        <rect id="surf-ail-L" class="surf-bar up" x="78" y="25" width="0" height="6"/>
+        <text id="surf-ail-L-val" x="125" y="30" class="surf-val">0°</text>
+        <!-- Aileron R bar -->
+        <text x="6" y="46" class="surf-lbl">AIL R</text>
+        <rect class="surf-bar-bg" x="38" y="40" width="80" height="8" rx="1"/>
+        <line class="surf-zero" x1="78" y1="38" x2="78" y2="50"/>
+        <rect id="surf-ail-R" class="surf-bar dn" x="78" y="41" width="0" height="6"/>
+        <text id="surf-ail-R-val" x="125" y="46" class="surf-val">0°</text>
+        <!-- Elevator bar -->
+        <text x="155" y="30" class="surf-lbl">ELEV</text>
+        <rect class="surf-bar-bg" x="190" y="24" width="60" height="8" rx="1"/>
+        <line class="surf-zero" x1="220" y1="22" x2="220" y2="34"/>
+        <rect id="surf-elev" class="surf-bar dn" x="220" y="25" width="0" height="6"/>
+        <text id="surf-elev-val" x="258" y="30" class="surf-val">0°</text>
+        <!-- Rudder bar (always 0, greyed — key evidence) -->
+        <text x="155" y="46" class="surf-lbl" style="fill:#888">RUD</text>
+        <rect class="surf-bar-bg-grey" x="190" y="40" width="60" height="8" rx="1"/>
+        <line class="surf-zero-grey" x1="220" y1="38" x2="220" y2="50"/>
+        <text x="258" y="46" class="surf-val-grey">0° UNTOUCHED</text>
+        <text x="155" y="55" class="surf-val-grey" style="font-size:5.5px">方向舵全程未动</text>
+        <!-- Status -->
+        <text id="surf-status" x="140" y="76" text-anchor="middle" class="surf-stat">—</text>
+      </svg>
+    </div>
 
     <!-- FUEL CUTOFF SWITCH — bottom-center (pedestal position) -->
     <div class="act-card" id="card-fuel">
@@ -964,7 +1013,47 @@ function makeFlightPath(){
   for(let i2=DI;i2<N_PTS;i2++){
     const dot=new THREE.Mesh(dotG,new THREE.MeshBasicMaterial({color:i2===N_PTS-1?0xff2222:0xffaa44}));
     dot.position.copy(pts[i2].p);scene.add(dot);
+    // Persistent ADS-B sample label — billboard sprite that always faces camera
+    scene.add(makeAdsLabel(pts[i2]));
   }
+}
+// Sprite label for an ADS-B sample point. Shows alt/spd/V/S, always
+// camera-facing, naturally clips when off-screen.
+function makeAdsLabel(pt){
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 96;
+  const ctx = cv.getContext('2d');
+  // Translucent dark backdrop for readability over varied terrain
+  ctx.fillStyle = 'rgba(0,0,0,.62)';
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(2,2,252,92,6); else ctx.rect(2,2,252,92);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,170,80,.7)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // Three lines: ALT / GS / V/S
+  ctx.font = 'bold 22px "Courier New", monospace';
+  ctx.fillStyle = '#ffe6b0';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(pt.alt.toLocaleString() + ' ft', 128, 22);
+  ctx.font = 'bold 18px "Courier New", monospace';
+  ctx.fillStyle = '#cdf2d6';
+  ctx.fillText(pt.spd + ' kts', 128, 50);
+  // V/S coloured: red if descending fast, green if climbing
+  const vsAbs = Math.abs(pt.vs);
+  ctx.fillStyle = pt.vs < -5000 ? '#ff7766' : pt.vs > 1000 ? '#88ee88' : '#cdcdcd';
+  ctx.font = 'bold 16px "Courier New", monospace';
+  const vsTxt = (pt.vs >= 0 ? '+' : '') + pt.vs.toLocaleString() + ' fpm';
+  ctx.fillText(vsTxt, 128, 76);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false});
+  const sp = new THREE.Sprite(mat);
+  sp.position.copy(pt.p);
+  sp.position.y += 1.6;       // slight offset above the dot
+  sp.scale.set(5.6, 2.1, 1);  // size in world units
+  return sp;
 }
 
 function makeAltLabels(){
@@ -1105,6 +1194,15 @@ function actInit(){
   act.ykRPitchTip = document.getElementById('yk-R-pitch-tip');
   // Dual / fight badge
   act.dualCard   = document.getElementById('card-dual');
+  // Control surfaces
+  act.surfCard   = document.getElementById('card-surf');
+  act.surfAilL   = document.getElementById('surf-ail-L');
+  act.surfAilR   = document.getElementById('surf-ail-R');
+  act.surfElev   = document.getElementById('surf-elev');
+  act.surfAilLVal= document.getElementById('surf-ail-L-val');
+  act.surfAilRVal= document.getElementById('surf-ail-R-val');
+  act.surfElevVal= document.getElementById('surf-elev-val');
+  act.surfStatus = document.getElementById('surf-status');
 }
 function flashEl(el, cls){
   if(!el) return;
@@ -1359,11 +1457,52 @@ function updYokeCards(t){
   setCard(act.dualCard, tF >= 3 && tF <= 22);
 }
 
+// Surface deflection update — derived from yoke wheel position + column push.
+// Aileron deflection ∝ −Whl Pos (left wheel → left aileron UP / right aileron DOWN).
+// Elevator deflection ∝ −Col Push (column forward → elevator DOWN).
+// Rudder = 0° throughout (FDR Fig 12 untouched).
+function _setSurfBar(rect, valEl, deflectionDeg, halfMaxPx, halfMaxDeg, cx){
+  const clamped = Math.max(-halfMaxDeg, Math.min(halfMaxDeg, deflectionDeg));
+  const w = (Math.abs(clamped) / halfMaxDeg) * halfMaxPx;
+  rect.setAttribute('x', clamped >= 0 ? cx : (cx - w));
+  rect.setAttribute('width', w.toFixed(1));
+  rect.classList.toggle('up', clamped >= 0);
+  rect.classList.toggle('dn', clamped < 0);
+  const sign = clamped >= 0 ? '+' : '';
+  valEl.textContent = sign + clamped.toFixed(0) + '°';
+}
+function updSurfaceCard(t){
+  const tF = t - 268;
+  const visible = tF >= 1 && tF <= 22;
+  setCard(act.surfCard, visible);
+  if(!visible) return;
+  const whl = _whlDeg(tF);
+  const push = _colPushPx(tF);
+  // Wheel ±90° → aileron ±15° (typical 737 max aileron ≈ 20°).
+  const ailL = -whl / 6;          // left aileron (positive = trailing edge UP)
+  const ailR = whl / 6;           // right aileron (mirror)
+  // Column push → elevator down. push 0..26px → elev 0°..−25°.
+  const elev = -push * (25 / 26);
+  _setSurfBar(act.surfAilL, act.surfAilLVal, ailL, 40, 20, 78);
+  _setSurfBar(act.surfAilR, act.surfAilRVal, ailR, 40, 20, 78);
+  _setSurfBar(act.surfElev, act.surfElevVal, elev, 30, 25, 220);
+  // Flash elevator at the sudden final deflection (T+18+ phase)
+  act.surfElev.classList.toggle('flash', tF >= 18 && elev < -15);
+  let s, c = '#ffd4a8';
+  if      (tF < 3)  { s = 'AP ENGAGED · all surfaces neutral 全面中立'; c = '#9bd09b'; }
+  else if (tF < 7)  { s = 'AILERON ramping 副翼建立中'; c = '#ffaa44'; }
+  else if (tF < 18) { s = 'AIL ±15° SUSTAINED · ELEV ~0° 副翼持续偏'; c = '#ff8844'; }
+  else              { s = '★ ELEV SUDDEN DOWN 末段升降舵急下偏 ★'; c = '#ff3838'; }
+  act.surfStatus.textContent = s;
+  act.surfStatus.style.fill = c;
+}
+
 function updActions(t){
   if(!act.strip) return;
   updApCard(t);
   updFuelCard(t);
   updYokeCards(t);
+  updSurfaceCard(t);
 }
 
 function updEvt(t){
