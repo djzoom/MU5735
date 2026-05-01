@@ -152,7 +152,7 @@ canvas{display:block}
       <button class="btn cam-btn" id="cam-cockpit">FPV</button>
     </div>
     <div id="timeline"><div id="timeline-fill"></div><div id="timeline-marker"></div></div>
-    <div id="time-text"><span id="v-elapsed">00:00</span> / <span id="v-total">--:--</span><span class="m-hide"> &ensp;|&ensp; Orbit: drag &ensp; Zoom: scroll &ensp; Seek: click bar</span></div>
+    <div id="time-text"><span id="v-elapsed">00:00.000</span> / <span id="v-total">--:--</span> &ensp;|&ensp; <span style="color:#668866">CST 北京</span> <span class="val" id="v-cst-tl" style="color:#c0ffc0;font-weight:bold">14:20:38.000</span><span class="m-hide"> &ensp;|&ensp; Orbit: drag &ensp; Zoom: scroll &ensp; Seek: click bar</span></div>
   </div>
   <div id="p-events" class="panel">
     <div class="ehdr">FDR / ADS-B EVENTS 事件时间线</div>
@@ -779,15 +779,19 @@ function updHUD(d){
   $('v-bank').textContent=(d.bank/D2R).toFixed(1);
   $('v-gload').textContent=d.gLoad.toFixed(1);$('v-gload').className=d.gLoad>2?'val warning':'val';
   const ut=T0+d.t;const ud=new Date(ut*1000);
-  $('v-utc').textContent=[ud.getUTCHours(),ud.getUTCMinutes(),ud.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+  const fmtHMS_ms=dt=>[dt.getUTCHours(),dt.getUTCMinutes(),dt.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':')+'.'+String(dt.getUTCMilliseconds()).padStart(3,'0');
+  $('v-utc').textContent=fmtHMS_ms(ud);
   const cd=new Date((ut+28800)*1000);
-  $('v-cst').textContent=[cd.getUTCHours(),cd.getUTCMinutes(),cd.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+  const cstStr=fmtHMS_ms(cd);
+  $('v-cst').textContent=cstStr;
+  $('v-cst-tl').textContent=cstStr;
   $('v-lat').textContent=d.lat.toFixed(4);$('v-lon').textContent=d.lon.toFixed(4);
   const pl=$('phase-label');
   const clrs={CRUISE:'#44dd88',MANEUVERING:'#ddaa44','INITIAL DIVE':'#ff8800',RECOVERY:'#dddd44','FINAL DIVE':'#ff2222'};
   pl.textContent=d.phase;pl.style.color=clrs[d.phase]||'#aaa';pl.className=d.phase==='FINAL DIVE'?'warning':'';
   const rel=Math.max(0,d.t-START_T);
-  $('v-elapsed').textContent=String(Math.floor(rel/60)).padStart(2,'0')+':'+String(Math.floor(rel%60)).padStart(2,'0');
+  const relMs=Math.floor((rel*1000)%1000);
+  $('v-elapsed').textContent=String(Math.floor(rel/60)).padStart(2,'0')+':'+String(Math.floor(rel%60)).padStart(2,'0')+'.'+String(relMs).padStart(3,'0');
   $('alt-bar').style.height=Math.max(0,Math.min(100,d.alt/30000*100))+'%';
   const pct=Math.max(0,(d.t-START_T)/(DUR-START_T)*100);$('timeline-fill').style.width=pct+'%';$('timeline-marker').style.left=pct+'%';
 }
@@ -850,10 +854,12 @@ async function init(){
   makeCrashMarker();makeFlightPath();makeAltLabels();
   scene.add(new THREE.GridHelper(400,40,0x44554433,0x33443322));
   const tDur=DUR-START_T;
-  $('v-total').textContent=String(Math.floor(tDur/60)).padStart(2,'0')+':'+String(Math.floor(tDur%60)).padStart(2,'0');
+  const tDurMs=Math.floor((tDur*1000)%1000);
+  $('v-total').textContent=String(Math.floor(tDur/60)).padStart(2,'0')+':'+String(Math.floor(tDur%60)).padStart(2,'0')+'.'+String(tDurMs).padStart(3,'0');
 
-  // Timeline event ticks
+  // Timeline event ticks (with CST millisecond timestamp)
   const tlEl=$('timeline');
+  const fmtCstMs=t=>{const dt=new Date((T0+t+28800)*1000);return [dt.getUTCHours(),dt.getUTCMinutes(),dt.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':')+'.'+String(dt.getUTCMilliseconds()).padStart(3,'0');};
   EVT.forEach(e=>{
     if(e.t<START_T)return;
     const pct=(e.t-START_T)/(DUR-START_T)*100;
@@ -862,7 +868,7 @@ async function init(){
     tick.style.left=pct+'%';
     const tip=document.createElement('div');
     tip.className='tl-tip';
-    tip.textContent=e.tl;
+    tip.innerHTML='<span style="color:#88ccff">CST '+fmtCstMs(e.t)+'</span><br>'+e.tl;
     tick.appendChild(tip);
     tick.addEventListener('click',ev=>{ev.stopPropagation();seekTo(e.t-1);S.playing=true;});
     tlEl.appendChild(tick);
