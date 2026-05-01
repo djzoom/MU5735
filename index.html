@@ -206,14 +206,12 @@ canvas{display:block}
 .yk-force.show{opacity:.95}
 .yk-force.cap{stroke:#22ddff}        /* Captain — cyan */
 .yk-force.fo {stroke:#ffdd33}        /* F/O — yellow */
-.yk-force.fight{stroke:#ff3838;stroke-width:2.6;animation:blink .45s infinite}
 .yk-force-tip{fill:currentColor;opacity:0;transition:opacity .3s}
 .yk-force-tip.show{opacity:.95}
 .yk-pitch-force{fill:none;stroke-width:2;stroke-linecap:round;opacity:0;transition:opacity .3s,stroke .3s}
 .yk-pitch-force.show{opacity:.95}
 .yk-pitch-force.cap{stroke:#22ddff}
 .yk-pitch-force.fo {stroke:#ffdd33}
-.yk-pitch-force.fight{stroke:#ff3838;animation:blink .45s infinite}
 
 #loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#668;font-size:13px;text-align:center}
 
@@ -1102,14 +1100,9 @@ function updAdsLabels(){
     s.show = true;
     shownPts.push(s);
   }
-  // Pass 3: find the active label (smallest |label.t − playback t|) for the
-  // ads-active class only. Size + alpha use a CONTINUOUS time-proximity boost
-  // so labels don't pop in size as the active one switches.
-  let active = null;
-  for (let k = 0; k < shownPts.length; k++) {
-    if (!active || shownPts[k].dt < active.dt) active = shownPts[k];
-  }
-  // Pass 4: apply opacity / scale / transform
+  // Pass 3: apply opacity / scale / transform.
+  // Size + alpha use a continuous time-proximity boost so labels don't pop
+  // as the nearest-time label changes.
   for (let i = 0; i < states.length; i++) {
     const s = states[i];
     const l = s.l;
@@ -1121,14 +1114,12 @@ function updAdsLabels(){
     let alpha = s.acDist <= 30 ? 1 : Math.max(0.15, 1 - (s.acDist - 30) / 25);
     // Perspective scale; reference dist 25u → 1.0×, clamp [0.7..1.4]
     let scale = Math.max(0.7, Math.min(1.4, 25 / Math.max(s.camDist, 8)));
-    // Continuous time-proximity boost: 1 at dt=0, ~0 by dt≈6s. Replaces the
-    // earlier discrete *=1.2 jump when the active label switched.
+    // Continuous time-proximity boost: 1 at dt=0, ~0 by dt≈6s
     const tBoost = Math.exp(-s.dt / 2.5);
     scale *= 1 + 0.2 * tBoost;
     alpha = Math.min(1, alpha + 0.25 * tBoost);
     l.div.style.opacity = alpha.toFixed(2);
     l.div.style.transform = 'translate(-50%,-50%) translate(' + s.sx.toFixed(1) + 'px,' + s.sy.toFixed(1) + 'px) scale(' + scale.toFixed(2) + ')';
-    l.div.classList.toggle('ads-active', s === active);
   }
 }
 
@@ -1640,14 +1631,13 @@ function doImpact(){
    Manual orbit → revert to Free (follow).
    Named modes position camera; Free just follows target.
    ================================================================ */
-const S={playing:true,t:0,speed:2,cam:'tail',camActive:false,userOrbit:false};
+const S={playing:true,t:0,speed:2,cam:'tail'};
 let prevAircraftPos=new THREE.Vector3();
 let pTS=0;
 
 oc.addEventListener('start',()=>{
-  S.userOrbit=true;
   if(S.cam!=='free'){
-    S.cam='free';S.camActive=false;
+    S.cam='free';
     document.querySelectorAll('.cam-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById('cam-free').classList.add('active');
   }
@@ -1800,7 +1790,7 @@ function updHUD(d){
 }
 
 /* ── controls ── */
-function reset(){lastEI=-1;S.userOrbit=false;impP.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});impP.length=0;smP=2*D2R;smB=0;smH=100;_lt=-1;_wasFDR=false;
+function reset(){lastEI=-1;impP.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});impP.length=0;smP=2*D2R;smB=0;smH=100;_lt=-1;_wasFDR=false;
   impacted=false;AG.visible=false;
   trails.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});trails.length=0;
 }
@@ -1858,7 +1848,7 @@ $('timeline').onclick=ev=>{const r=$('timeline').getBoundingClientRect();seekTo(
 // Camera mode buttons
 ['free','tail','left','right','top'].forEach(mode=>{
   $('cam-'+mode).onclick=()=>{
-    S.cam=mode;S.camActive=true;
+    S.cam=mode;
     document.querySelectorAll('.cam-btn').forEach(b=>b.classList.remove('active'));
     $('cam-'+mode).classList.add('active');
   };
