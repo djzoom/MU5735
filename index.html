@@ -113,14 +113,15 @@ canvas{display:block}
 .act-hdr{font-size:8.5px;color:rgba(255,170,80,.85);letter-spacing:1.2px;margin-bottom:2px;text-shadow:0 0 4px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,1)}
 .act-status{font-size:9px;color:#ffe0b0;margin-top:4px;letter-spacing:.5px;font-weight:bold;text-shadow:0 0 5px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,1)}
 .act-svg{display:block;margin:0 auto;filter:drop-shadow(0 0 4px rgba(0,0,0,.85))}
-/* Per-card placement */
-/* AP indicators sit just under the event banner (banner @ top:90, ~50px tall) */
+/* Per-card placement — all schematic cards lifted clear of the bottom
+   controls/progress strip so buttons stay unobstructed. */
 #card-ap   {top:148px; left:50%; --tx:-50%; transform:translateX(-50%)}
-/* Control-surface deflection bars — bottom-centre, just above controls panel */
-#card-surf {bottom:108px; left:50%; --tx:-50%; transform:translateX(-50%)}
-#card-fuel {bottom:130px; left:50%; --tx:-50%; transform:translateX(-50%)}
-#card-yoke-L{bottom:130px; left:35%;  --tx:-50%; transform:translateX(-50%)}
-#card-yoke-R{bottom:130px; right:35%; --tx:50%;  transform:translateX(50%)}
+/* Control-surface bar — compact strip, just above the controls panel */
+#card-surf {bottom:170px; left:50%; --tx:-50%; transform:translateX(-50%)}
+/* Fuel + yokes — sit higher with breathing room above the surface bar */
+#card-fuel {bottom:260px; left:50%; --tx:-50%; transform:translateX(-50%)}
+#card-yoke-L{bottom:260px; left:22%;  --tx:-50%; transform:translateX(-50%)}
+#card-yoke-R{bottom:260px; right:22%; --tx:50%;  transform:translateX(50%)}
 #card-dual  {top:30%; left:50%; --tx:-50%; transform:translateX(-50%);font-family:'Courier New',monospace;font-size:13px;font-weight:bold;color:#ff3838;letter-spacing:2px;text-shadow:0 0 8px #ff0000,0 0 14px #ff0000,0 0 4px rgba(0,0,0,1);animation:pulseDual 1s ease-in-out infinite}
 @keyframes pulseDual{0%,100%{transform:translateX(-50%) scale(1);opacity:.85}50%{transform:translateX(-50%) scale(1.1);opacity:1}}
 /* Key-moment flashes */
