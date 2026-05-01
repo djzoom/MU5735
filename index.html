@@ -156,9 +156,11 @@ canvas{display:block}
   </div>
   <div id="p-events" class="panel">
     <div class="ehdr">FDR / ADS-B EVENTS 事件时间线</div>
-    <div class="evt" data-t="268">14:20:38 Engine fuel SW CUTOFF 燃油切断</div>
-    <div class="evt" data-t="271">14:20:41 Control column pushed 驾驶杆前推</div>
+    <div class="evt" data-t="268">14:20:38 Engine fuel CUTOFF 燃油切断</div>
+    <div class="evt" data-t="271">14:20:41 AP OFF + column push 自驾断开+前推</div>
     <div class="evt" data-t="274">14:20:44 Last stable FL291 最后稳定</div>
+    <div class="evt" data-t="278">14:20:48 EXTREME ATT 极端姿态 (FDR)</div>
+    <div class="evt" data-t="285">14:20:55 Ctrl surface limits 操纵面限位</div>
     <div class="evt" data-t="290">14:21:00 Descent 27,025 ft 开始下降</div>
     <div class="evt" data-t="291">14:21:01 FDR stops ~26k ft FDR断电</div>
     <div class="evt" data-t="305">14:21:15 Dive steepens 17,325 ft 俯冲加剧</div>
@@ -179,16 +181,20 @@ canvas{display:block}
       &nbsp; <a href="https://github.com/cathaypacific8747/mu5735" target="_blank">FR24 ADS-B granular</a> &mdash; 27 of 397 pts selected<br>
       &nbsp; <span class="src-note">Flight path and timing are real recorded data.<br>
       &nbsp; 航迹与时间为真实记录数据。</span><br>
-      <b style="color:rgba(255,200,80,.7)">&#9632; DISCLOSED 已披露</b> &mdash; FDR / CAAC<br>
+      <b style="color:rgba(255,200,80,.7)">&#9632; DISCLOSED 已披露</b> &mdash; FDR / CAAC / NTSB FOIA<br>
       &nbsp; Engine fuel cutoff 发动机燃油切断<br>
+      &nbsp; AP-1/AP-2 disconnect 自动驾驶断开<br>
       &nbsp; Control column pushed fwd 驾驶杆前推<br>
+      &nbsp; Pitch -30°~-40°, Roll &gt;90°~180° (FDR last 20s)<br>
+      &nbsp; Elevator/aileron at deflection limits 操纵面限位<br>
+      &nbsp; Dual input — two pilots fighting 两人争夺操纵<br>
       &nbsp; FDR power loss ~26,000 ft FDR断电<br>
       &nbsp; <a href="https://www.ntsb.gov" target="_blank">NTSB FOIA DCA22WA102</a><br><br>
-      <b style="color:rgba(255,100,80,.7)">&#9632; ESTIMATED 估算值</b><br>
+      <b style="color:rgba(255,100,80,.7)">&#9632; ESTIMATED 估算值</b> (after FDR stop 断电后)<br>
       &nbsp; Pitch 俯仰角 = FPA + AOA estimate<br>
       &nbsp; &nbsp; <span class="src-note">FPA from trajectory tangent 航迹切线方向<br>
       &nbsp; &nbsp; AOA from V/S magnitude 迎角由垂直速率估算<br>
-      &nbsp; &nbsp; Column pushed fwd → nose steeper than path 驾驶杆前推→机头比航迹更陡</span><br>
+      &nbsp; &nbsp; FDR phase (14:20:41-14:21:01): uses disclosed data 使用已披露FDR数据</span><br>
       &nbsp; Bank 倾斜角 = heading rate &times; 6<br>
       &nbsp; &nbsp; <span class="src-note">Assumes coordinated flight 假设协调飞行</span><br>
       &nbsp; G-load G载荷 &mdash; rough approx 粗略估算<br><br>
@@ -335,6 +341,15 @@ function interp(t){
   const hr=seg>0?dh/seg:0;
   let tB=Math.max(-Math.PI/3,Math.min(Math.PI/3,-hr*D2R*6));
 
+  // FDR DISCLOSED attitude override (column push T-20s to FDR stop T)
+  // NTSB FOIA: pitch -30°~-40°, roll >90°~180°, two pilots fighting for control
+  if(t>=271&&t<291){
+    const p=(t-271)/20;
+    const ramp=Math.min(1,p/0.15);
+    tP=-ramp*(25+10*Math.sin(p*6*Math.PI))*D2R;
+    tB=ramp*110*D2R*Math.sin(p*8*Math.PI+0.5);
+  }
+
   // Exponential smoothing (frame-rate independent, tau=0.8s)
   const el=_lt>=0?Math.abs(t-_lt):1/60;_lt=t;
   const al=1-Math.exp(-el/0.8);
@@ -342,7 +357,8 @@ function interp(t){
   let hd2=tH-smH;if(hd2>180)hd2-=360;if(hd2<-180)hd2+=360;
   smH+=hd2*al;if(smH<0)smH+=360;if(smH>=360)smH-=360;
 
-  const gL=1+Math.abs(vs)/30000*2;
+  let gL=1+Math.abs(vs)/30000*2;
+  if(t>=271&&t<291){const p=(t-271)/20;gL=1+Math.min(1,p/0.15)*Math.abs(2.5*Math.sin(p*7*Math.PI));}
   let ph='CRUISE';
   if(t>=pts[DI].dt){
     if(vs>1000)ph='RECOVERY';
@@ -550,8 +566,10 @@ function buildSimple(){
    ================================================================ */
 const EVT=[
   {t:268,m:"ENG FUEL CUTOFF 燃油切断",s:"FDR: both engine fuel switches RUN→CUTOFF at FL291 双发燃油开关从运行切至关断",tl:"Fuel cutoff 燃油切断"},
-  {t:271,m:"CONTROL COLUMN PUSHED 驾驶杆前推",s:"FDR: abnormal control inputs, 3s after fuel cutoff 异常操纵输入",tl:"Column push 前推"},
+  {t:271,m:"AP OFF + COLUMN PUSHED 自动驾驶断开+前推",s:"FDR: AP-1 AP-2 OFF, abnormal column input 3s after cutoff 自驾断开+异常操纵",tl:"AP off+push 断开前推"},
   {t:274,m:"LAST STABLE — FL291 最后稳定高度",s:"29,100 ft, 457 kts, heading 100° — all nominal 所有参数正常",tl:"Last stable 稳定"},
+  {t:278,m:"EXTREME ATTITUDE 极端姿态 (FDR)",s:"FDR: pitch -30°~-40°, roll >90°~180°, dual input 两人争夺操纵",tl:"Extreme 极端姿态"},
+  {t:285,m:"CTRL SURFACE LIMITS 操纵面极限 (FDR)",s:"FDR: elevator/aileron at deflection limits, IAS >400 kts 升降舵副翼限位",tl:"Limits 限位"},
   {t:290,m:"DESCENT — 27,025 FT 开始下降",s:"ADS-B: V/S -21,696 ft/min — 16s gap since stable 距稳定点16秒",tl:"Descent 下降"},
   {t:291,m:"FDR STOPS ~26,000 FT FDR断电",s:"Engine N2 below generator threshold, electrical power lost 发电机失电",tl:"FDR stop 断电"},
   {t:305,m:"DIVE STEEPENS 俯冲加剧 — 17,325 FT",s:"V/S -30,976 ft/min, heading 91°→123° 航向急变",tl:"Steepen 加剧"},
@@ -560,7 +578,7 @@ const EVT=[
   {t:355,m:"PEAK RECOVERY 拉起峰值 — 8,600 FT",s:"Gained ~1,200 ft, speed 507 kts 回升约370米",tl:"Peak 峰值"},
   {t:372,m:"2ND DIVE 二次俯冲",s:"V/S -13,248 ft/min at 8,175 ft 再次进入俯冲",tl:"2nd dive 二次"},
   {t:386,m:"LAST ADS-B 最后信号 — 3,225 FT",s:"376 kts, V/S -30,976 ft/min",tl:"Last signal 末信号"},
-  {t:388.5,m:"IMPACT 撞击 — TENG COUNTY 藤县",s:"23°19'25.5\"N 111°06'44.3\"E — 广西梧州市藤县",tl:"IMPACT 撞击"},
+  {t:388.5,m:"IMPACT 撞击 — TENG COUNTY 藤县",s:"23°19'25.5\"N 111°06'44.3\"E — witnesses: spiral/tumble 目击：螺旋翻滚",tl:"IMPACT 撞击"},
 ];
 let lastEI=-1,bannerT=0;
 const eBanner=document.getElementById('event-banner'),eMsg=document.getElementById('eb-msg'),eSub=document.getElementById('eb-sub');
