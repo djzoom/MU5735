@@ -118,22 +118,25 @@ canvas{display:block}
 .ap-light{fill:rgba(40,40,40,.5);stroke:rgba(120,160,120,.6);stroke-width:.8;transition:fill .25s,stroke .25s}
 .ap-light.warn{fill:#ff2828;stroke:#aa0808;stroke-width:1.2;animation:blink .55s infinite}
 .ap-lbl{fill:#fff;font-size:7px;font-family:'Courier New',monospace;font-weight:bold}
-/* YOKE + COLUMN — pilot POV (front view).
-   Push = wheel translates DOWN; Pull = wheel translates UP.
-   Roll = wheel rotates around its own centre. Column shaft not shown
-   (it's behind the dashboard from pilot's POV — small mount stub only). */
-.yk-body{fill:#9aa0a4;stroke:#444;stroke-width:.6}
-.yk-grip{fill:#1a1a1a;stroke:#000;stroke-width:.5}
-.yk-hub{fill:#1a1a1a;stroke:#666;stroke-width:.6}
-.yk-spoke{stroke:#555;stroke-width:1.6;stroke-linecap:round}
-.yk-btn-ap{fill:#cc1818;stroke:#660808;stroke-width:.3}
+/* YOKE — true 737 "horns" geometry (pilot POV / front view):
+   Two curved arms sweep outward from a central hub up to horizontal grip
+   blocks at the corners; central column-mount carries the badge.
+   Push = whole yoke translates DOWN; Pull = UP; Roll = rotate around hub. */
+.yk-arm{fill:none;stroke:#0a0a0a;stroke-width:8;stroke-linecap:round}
+.yk-grip{fill:#0a0a0a;stroke:#222;stroke-width:.5}
+.yk-grip-hi{fill:rgba(255,255,255,.06);stroke:none}
+.yk-mount{fill:#141414;stroke:#333;stroke-width:.5}
+.yk-hub{fill:#3a3a3a;stroke:#1a1a1a;stroke-width:.5}
+.yk-hub-screw{fill:#1a1a1a}
+.yk-logo{fill:#3aa9d8;font-size:4.5px;font-family:'Arial',sans-serif;font-weight:bold;letter-spacing:.4px}
+.yk-btn-ap{fill:#dd1414;stroke:#660606;stroke-width:.3}
 .yk-btn-trim{fill:#666;stroke:#222;stroke-width:.3}
 .yk-btn-ptt{fill:#3366aa;stroke:#112244;stroke-width:.3}
-.yk-active .yk-body{stroke:#ff8844;stroke-width:1.3}
-.yk-active .yk-hub{stroke:#ff8844;stroke-width:1.3}
+.yk-active{filter:drop-shadow(0 0 4px rgba(255,136,68,.55))}
+.yk-active .yk-arm{stroke:#1d1d1d}
+.yk-active .yk-grip,.yk-active .yk-mount,.yk-active .yk-hub{stroke:#ff8844;stroke-width:1.2}
 .yk-lbl{fill:rgba(220,220,220,.85);font-size:6px;font-family:'Courier New',monospace}
-.yk-mount{fill:#444;stroke:#222;stroke-width:.5}
-.yk-track{stroke:rgba(180,180,180,.35);stroke-width:.4;stroke-dasharray:2 2}
+.yk-track{stroke:rgba(180,180,180,.3);stroke-width:.4;stroke-dasharray:2 2}
 /* Per-pilot force arrows (independent of mechanical position) */
 .yk-force{fill:none;stroke-width:2;stroke-linecap:round;opacity:0;transition:opacity .3s,stroke .3s}
 .yk-force.show{opacity:.95}
@@ -359,21 +362,28 @@ canvas{display:block}
         <g id="yoke-L-tilt" transform="translate(0,0)">
           <!-- Yoke wheel (front view, rotates for roll) -->
           <g id="yoke-L-rot" transform="translate(75,70) rotate(0)">
-            <path class="yk-body" d="M -38 -3 Q -38 -24 -20 -24 L 20 -24 Q 38 -24 38 -3 L 38 1 L -38 1 Z"/>
-            <rect class="yk-grip" x="-42" y="-3" width="8" height="32" rx="2.5"/>
-            <rect class="yk-grip" x="34" y="-3" width="8" height="32" rx="2.5"/>
-            <line class="yk-spoke" x1="0" y1="0" x2="-24" y2="-20"/>
-            <line class="yk-spoke" x1="0" y1="0" x2="24" y2="-20"/>
-            <circle class="yk-hub" r="8"/>
-            <text x="0" y="2" text-anchor="middle" class="yk-lbl" style="fill:#888;font-size:3.5px">737</text>
-            <rect class="yk-btn-ap" x="-40.5" y="2" width="5" height="2.6" rx=".6"/>
-            <rect class="yk-btn-trim" x="-40.5" y="8" width="5" height="2.2" rx=".4"/>
-            <rect class="yk-btn-trim" x="-40.5" y="12" width="5" height="2.2" rx=".4"/>
-            <rect class="yk-btn-ptt" x="-40.5" y="20" width="5" height="2.6" rx=".6"/>
-            <rect class="yk-btn-ap" x="35.5" y="2" width="5" height="2.6" rx=".6"/>
-            <rect class="yk-btn-trim" x="35.5" y="8" width="5" height="2.2" rx=".4"/>
-            <rect class="yk-btn-trim" x="35.5" y="12" width="5" height="2.2" rx=".4"/>
-            <rect class="yk-btn-ptt" x="35.5" y="20" width="5" height="2.6" rx=".6"/>
+            <!-- Two curved arms from hub up-and-out to the grips -->
+            <path class="yk-arm" d="M -8 0 Q -22 -3 -33 -16"/>
+            <path class="yk-arm" d="M  8 0 Q  22 -3  33 -16"/>
+            <!-- Central column mount (oblong with badge) -->
+            <rect class="yk-mount" x="-9" y="-3" width="18" height="22" rx="3"/>
+            <text class="yk-logo" x="0" y="9" text-anchor="middle">B737</text>
+            <!-- Hub at rotation centre -->
+            <circle class="yk-hub" r="5.5"/>
+            <circle class="yk-hub-screw" r="1.4"/>
+            <!-- Grip blocks at arm ends (horizontal, slightly tilted) -->
+            <rect class="yk-grip" x="-44" y="-24" width="16" height="12" rx="3"/>
+            <rect class="yk-grip-hi" x="-43" y="-23.4" width="14" height="2" rx="1"/>
+            <rect class="yk-grip" x="28" y="-24" width="16" height="12" rx="3"/>
+            <rect class="yk-grip-hi" x="29" y="-23.4" width="14" height="2" rx="1"/>
+            <!-- Left grip controls: red AP-disconnect (front) + trim switch (top) -->
+            <circle class="yk-btn-ap" cx="-32" cy="-15" r="1.7"/>
+            <rect class="yk-btn-trim" x="-42" y="-27" width="11" height="2.5" rx=".5"/>
+            <rect class="yk-btn-ptt" x="-43" y="-12.5" width="3" height="2" rx=".3"/>
+            <!-- Right grip controls (mirror) -->
+            <circle class="yk-btn-ap" cx="32" cy="-15" r="1.7"/>
+            <rect class="yk-btn-trim" x="31" y="-27" width="11" height="2.5" rx=".5"/>
+            <rect class="yk-btn-ptt" x="40" y="-12.5" width="3" height="2" rx=".3"/>
           </g>
         </g>
         <!-- Captain force arrows (cyan) — independent of mechanical position -->
@@ -394,21 +404,22 @@ canvas{display:block}
         <line class="yk-track" x1="75" y1="22" x2="75" y2="118"/>
         <g id="yoke-R-tilt" transform="translate(0,0)">
           <g id="yoke-R-rot" transform="translate(75,70) rotate(0)">
-            <path class="yk-body" d="M -38 -3 Q -38 -24 -20 -24 L 20 -24 Q 38 -24 38 -3 L 38 1 L -38 1 Z"/>
-            <rect class="yk-grip" x="-42" y="-3" width="8" height="32" rx="2.5"/>
-            <rect class="yk-grip" x="34" y="-3" width="8" height="32" rx="2.5"/>
-            <line class="yk-spoke" x1="0" y1="0" x2="-24" y2="-20"/>
-            <line class="yk-spoke" x1="0" y1="0" x2="24" y2="-20"/>
-            <circle class="yk-hub" r="8"/>
-            <text x="0" y="2" text-anchor="middle" class="yk-lbl" style="fill:#888;font-size:3.5px">737</text>
-            <rect class="yk-btn-ap" x="-40.5" y="2" width="5" height="2.6" rx=".6"/>
-            <rect class="yk-btn-trim" x="-40.5" y="8" width="5" height="2.2" rx=".4"/>
-            <rect class="yk-btn-trim" x="-40.5" y="12" width="5" height="2.2" rx=".4"/>
-            <rect class="yk-btn-ptt" x="-40.5" y="20" width="5" height="2.6" rx=".6"/>
-            <rect class="yk-btn-ap" x="35.5" y="2" width="5" height="2.6" rx=".6"/>
-            <rect class="yk-btn-trim" x="35.5" y="8" width="5" height="2.2" rx=".4"/>
-            <rect class="yk-btn-trim" x="35.5" y="12" width="5" height="2.2" rx=".4"/>
-            <rect class="yk-btn-ptt" x="35.5" y="20" width="5" height="2.6" rx=".6"/>
+            <path class="yk-arm" d="M -8 0 Q -22 -3 -33 -16"/>
+            <path class="yk-arm" d="M  8 0 Q  22 -3  33 -16"/>
+            <rect class="yk-mount" x="-9" y="-3" width="18" height="22" rx="3"/>
+            <text class="yk-logo" x="0" y="9" text-anchor="middle">B737</text>
+            <circle class="yk-hub" r="5.5"/>
+            <circle class="yk-hub-screw" r="1.4"/>
+            <rect class="yk-grip" x="-44" y="-24" width="16" height="12" rx="3"/>
+            <rect class="yk-grip-hi" x="-43" y="-23.4" width="14" height="2" rx="1"/>
+            <rect class="yk-grip" x="28" y="-24" width="16" height="12" rx="3"/>
+            <rect class="yk-grip-hi" x="29" y="-23.4" width="14" height="2" rx="1"/>
+            <circle class="yk-btn-ap" cx="-32" cy="-15" r="1.7"/>
+            <rect class="yk-btn-trim" x="-42" y="-27" width="11" height="2.5" rx=".5"/>
+            <rect class="yk-btn-ptt" x="-43" y="-12.5" width="3" height="2" rx=".3"/>
+            <circle class="yk-btn-ap" cx="32" cy="-15" r="1.7"/>
+            <rect class="yk-btn-trim" x="31" y="-27" width="11" height="2.5" rx=".5"/>
+            <rect class="yk-btn-ptt" x="40" y="-12.5" width="3" height="2" rx=".3"/>
           </g>
         </g>
         <path id="yk-R-roll-arc" class="yk-force fo" d="M 45 50 Q 75 25 105 50"/>
