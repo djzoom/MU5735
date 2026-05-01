@@ -178,6 +178,11 @@ canvas{display:block}
 /* Cockpit FPV frame overlay — windshield + dashboard + A-pillars */
 #cockpit-frame{position:absolute;inset:0;pointer-events:none;z-index:5;display:none}
 #cockpit-frame svg{width:100%;height:100%;display:block}
+/* ADS-B point labels — HTML vector text (always crisp, no backdrop, soft shadow) */
+.ads-label{position:absolute;left:0;top:0;pointer-events:none;text-align:center;white-space:nowrap;font-family:'Courier New',monospace;line-height:1.15;will-change:transform;transition:opacity .15s}
+.ads-label .ads-alt{font-size:12px;color:#ffe6b0;font-weight:bold;text-shadow:0 1px 1px rgba(0,0,0,.5),0 0 2px rgba(0,0,0,.55)}
+.ads-label .ads-spd{font-size:10px;color:#cdf2d6;font-weight:bold;text-shadow:0 1px 1px rgba(0,0,0,.5),0 0 2px rgba(0,0,0,.55)}
+.ads-label .ads-vs {font-size:9px;font-weight:bold;text-shadow:0 1px 1px rgba(0,0,0,.5),0 0 2px rgba(0,0,0,.55)}
 /* Control-surface deflection bars */
 .surf-hdr{fill:#ffb088;font-size:8px;font-family:'Courier New',monospace;font-weight:bold;letter-spacing:.8px}
 .surf-lbl{fill:#cdf2d6;font-size:7px;font-family:'Courier New',monospace;font-weight:bold}
@@ -576,24 +581,210 @@ canvas{display:block}
     </div>
   </div>
   <div id="event-banner"><span id="eb-msg"></span><div class="esub" id="eb-sub"></div></div>
-  <!-- Cockpit FPV frame overlay (visible only when in cockpit camera mode) -->
+  <!-- Cockpit FPV overlay — 737-800 layout per Aviatas/COCKPITPOSTERS reference:
+       A-pillars + windshield arch / glareshield with MCP / two standby ADIs
+       at outer edges / six glass displays (PFD-ND-EICAS upper-EICAS lower-
+       ND-PFD) / centre pedestal with FMS/CDU + throttle quadrant +
+       fuel cutoff levers + flap. -->
   <div id="cockpit-frame">
     <svg viewBox="0 0 100 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Bottom dashboard / glareshield (concave-up arch) -->
-      <path d="M 0,60 L 0,42 Q 25,37 50,37 Q 75,37 100,42 L 100,60 Z"
-            fill="rgba(12,12,15,.82)" stroke="rgba(80,80,85,.55)" stroke-width=".15"/>
-      <!-- Subtle reflection line on dashboard top edge -->
-      <path d="M 0,42 Q 25,37 50,37 Q 75,37 100,42"
-            fill="none" stroke="rgba(180,200,220,.3)" stroke-width=".2"/>
-      <!-- Top windshield frame (concave-down) -->
-      <path d="M 0,0 L 0,9 Q 25,11 50,11 Q 75,11 100,9 L 100,0 Z"
-            fill="rgba(12,12,15,.7)"/>
-      <!-- Left A-pillar -->
-      <path d="M 0,0 L 7,0 Q 5,30 7,60 L 0,60 Z" fill="rgba(12,12,15,.7)"/>
-      <!-- Right A-pillar -->
-      <path d="M 100,0 L 93,0 Q 95,30 93,60 L 100,60 Z" fill="rgba(12,12,15,.7)"/>
-      <!-- Centre windshield divider post (subtle) -->
-      <rect x="49.7" y="11" width=".6" height="26" fill="rgba(60,60,65,.4)"/>
+      <!-- A-pillars (chunky window frame sides, slight inward curve) -->
+      <path d="M 0,0 L 6,0 Q 4,16 5,32 L 0,32 Z" fill="rgba(16,16,18,.88)"/>
+      <path d="M 100,0 L 94,0 Q 96,16 95,32 L 100,32 Z" fill="rgba(16,16,18,.88)"/>
+      <!-- Top windshield arch (slim band along top edge) -->
+      <path d="M 0,0 L 100,0 L 100,2.5 Q 50,4 0,2.5 Z" fill="rgba(16,16,18,.78)"/>
+      <!-- Centre windshield divider post -->
+      <rect x="49.7" y="2.5" width=".6" height="22" fill="rgba(60,60,65,.55)"/>
+
+      <!-- GLARESHIELD with MCP — wide horizontal black band -->
+      <path d="M 5,22 Q 50,21 95,22 L 95,28 Q 50,29 5,28 Z"
+            fill="rgba(8,8,10,.96)" stroke="rgba(60,60,65,.55)" stroke-width=".2"/>
+      <!-- MCP (Mode Control Panel) — central row of altitude/speed/heading windows + knobs -->
+      <g>
+        <!-- IAS/MACH window -->
+        <rect x="35" y="23" width="4.5" height="2.2" fill="#1a3a14" stroke="#363" stroke-width=".1"/>
+        <text x="37.25" y="24.6" fill="#9be69b" font-size=".95" font-family="monospace" text-anchor="middle">270</text>
+        <!-- HEADING window -->
+        <rect x="42" y="23" width="4.5" height="2.2" fill="#1a3a14" stroke="#363" stroke-width=".1"/>
+        <text x="44.25" y="24.6" fill="#9be69b" font-size=".95" font-family="monospace" text-anchor="middle">100</text>
+        <!-- ALTITUDE window -->
+        <rect x="49" y="23" width="5" height="2.2" fill="#1a3a14" stroke="#363" stroke-width=".1"/>
+        <text x="51.5" y="24.6" fill="#9be69b" font-size=".95" font-family="monospace" text-anchor="middle">29100</text>
+        <!-- VERTICAL SPEED -->
+        <rect x="56.5" y="23" width="4.5" height="2.2" fill="#1a3a14" stroke="#363" stroke-width=".1"/>
+        <text x="58.75" y="24.6" fill="#9be69b" font-size=".95" font-family="monospace" text-anchor="middle">0000</text>
+        <!-- COURSE -->
+        <rect x="63.5" y="23" width="3.5" height="2.2" fill="#1a3a14" stroke="#363" stroke-width=".1"/>
+        <text x="65.25" y="24.6" fill="#9be69b" font-size=".9" font-family="monospace" text-anchor="middle">100</text>
+        <!-- AP / autothrottle / FD buttons strip -->
+        <g fill="rgba(40,40,45,.95)" stroke="#444" stroke-width=".1">
+          <rect x="32" y="25.6" width="1.5" height="1.5"/>
+          <rect x="33.8" y="25.6" width="1.5" height="1.5"/>
+          <rect x="64" y="25.6" width="1.5" height="1.5"/>
+          <rect x="65.8" y="25.6" width="1.5" height="1.5"/>
+        </g>
+        <!-- AP-1/AP-2 indicator chips -->
+        <rect x="40" y="25.7" width="3" height="1.2" fill="#5a1010" stroke="#a22"/>
+        <rect x="44" y="25.7" width="3" height="1.2" fill="#5a1010" stroke="#a22"/>
+        <text x="41.5" y="26.55" fill="#fff" font-size=".7" font-family="monospace" text-anchor="middle">AP1</text>
+        <text x="45.5" y="26.55" fill="#fff" font-size=".7" font-family="monospace" text-anchor="middle">AP2</text>
+        <!-- AT button -->
+        <rect x="55" y="25.7" width="3" height="1.2" fill="rgba(35,35,40,.9)" stroke="#444"/>
+        <text x="56.5" y="26.55" fill="#aaa" font-size=".7" font-family="monospace" text-anchor="middle">A/T</text>
+      </g>
+      <!-- FMA mode-callout strip (top of glareshield) -->
+      <text x="50" y="22.0" fill="#ff7766" font-size=".95" font-family="monospace" font-weight="bold" text-anchor="middle">FMA — UPSET 失控姿态</text>
+
+      <!-- MAIN INSTRUMENT PANEL — gently arched dashboard housing the displays -->
+      <path d="M 5,28 Q 50,29 95,28 L 95,42 L 67,42 L 64,48 L 36,48 L 33,42 L 5,42 Z"
+            fill="rgba(48,48,52,.95)" stroke="rgba(85,85,90,.55)" stroke-width=".18"/>
+
+      <!-- Captain side: standby ADI + PFD + ND -->
+      <!-- Standby ADI (small round dial, far left) -->
+      <g>
+        <circle cx="9" cy="34" r="2.4" fill="#080812" stroke="#444" stroke-width=".18"/>
+        <circle cx="9" cy="34" r="2.1" fill="rgba(50,90,140,.6)"/>
+        <rect x="6.9" y="34" width="4.2" height="2.1" fill="rgba(120,75,40,.65)"/>
+        <line x1="6.9" y1="34" x2="11.1" y2="34" stroke="#fff" stroke-width=".15"/>
+        <rect x="8.4" y="33.7" width="1.2" height=".6" fill="#fc0"/>
+      </g>
+      <!-- Captain PFD -->
+      <g>
+        <rect x="12.5" y="29.5" width="10" height="11" rx=".35" fill="#080812" stroke="#3a3a40" stroke-width=".2"/>
+        <rect x="13" y="29.8" width="9" height="5" fill="rgba(50,95,150,.75)"/>
+        <rect x="13" y="34.8" width="9" height="5.4" fill="rgba(115,72,38,.78)"/>
+        <line x1="13" y1="34.8" x2="22" y2="34.8" stroke="#fff" stroke-width=".18"/>
+        <rect x="16" y="34.5" width="3" height=".6" fill="#fc0"/>
+        <text x="13.4" y="40" fill="#9af" font-size=".6" font-family="monospace">270</text>
+        <text x="20.5" y="40" fill="#9af" font-size=".6" font-family="monospace">29.1</text>
+      </g>
+      <!-- Captain ND -->
+      <g>
+        <rect x="23" y="29.5" width="11" height="11" rx=".35" fill="#080812" stroke="#3a3a40" stroke-width=".2"/>
+        <rect x="23.5" y="29.8" width="10" height="10.4" fill="rgba(15,25,35,.9)"/>
+        <circle cx="28.5" cy="36" r="3.6" fill="none" stroke="#266" stroke-width=".15"/>
+        <path d="M 28.5,32.4 L 28.5,39.6" stroke="#cf6" stroke-width=".2"/>
+        <text x="24" y="31" fill="#9af" font-size=".6" font-family="monospace">100°</text>
+      </g>
+
+      <!-- Centre: EICAS upper + lower -->
+      <g>
+        <rect x="34.5" y="29.5" width="13" height="5.6" rx=".3" fill="#080812" stroke="#3a3a40" stroke-width=".2"/>
+        <text x="35.5" y="31" fill="#cd0" font-size=".95" font-family="monospace">N1   0%</text>
+        <text x="35.5" y="32.4" fill="#cd0" font-size=".95" font-family="monospace">N2   0%</text>
+        <text x="35.5" y="33.8" fill="#aaa" font-size=".75" font-family="monospace">EGT --</text>
+        <rect x="41.5" y="30" width="5.5" height="1.1" fill="#3a0" opacity=".25"/>
+        <rect x="41.5" y="31.6" width="2.5" height="1.1" fill="#a30" opacity=".7"/>
+      </g>
+      <g>
+        <rect x="34.5" y="35.4" width="13" height="5" rx=".3" fill="#080812" stroke="#3a3a40" stroke-width=".2"/>
+        <text x="35.5" y="36.7" fill="#f55" font-size=".9" font-family="monospace" font-weight="bold">DUAL ENG OUT</text>
+        <text x="35.5" y="37.9" fill="#f55" font-size=".8" font-family="monospace">NO FUEL</text>
+        <text x="35.5" y="39" fill="#fc0" font-size=".8" font-family="monospace">AP1+2 DISC</text>
+        <text x="35.5" y="40.1" fill="#fc0" font-size=".7" font-family="monospace">UPSET</text>
+      </g>
+
+      <!-- F/O side: ND + PFD + standby ADI mirror -->
+      <g>
+        <rect x="48.5" y="29.5" width="11" height="11" rx=".35" fill="#080812" stroke="#3a3a40" stroke-width=".2"/>
+        <rect x="49" y="29.8" width="10" height="10.4" fill="rgba(15,25,35,.9)"/>
+        <circle cx="54" cy="36" r="3.6" fill="none" stroke="#266" stroke-width=".15"/>
+        <path d="M 54,32.4 L 54,39.6" stroke="#cf6" stroke-width=".2"/>
+        <text x="49.5" y="31" fill="#9af" font-size=".6" font-family="monospace">100°</text>
+      </g>
+      <g>
+        <rect x="60" y="29.5" width="10" height="11" rx=".35" fill="#080812" stroke="#3a3a40" stroke-width=".2"/>
+        <rect x="60.5" y="29.8" width="9" height="5" fill="rgba(50,95,150,.75)"/>
+        <rect x="60.5" y="34.8" width="9" height="5.4" fill="rgba(115,72,38,.78)"/>
+        <line x1="60.5" y1="34.8" x2="69.5" y2="34.8" stroke="#fff" stroke-width=".18"/>
+        <rect x="63.5" y="34.5" width="3" height=".6" fill="#fc0"/>
+      </g>
+      <!-- F/O standby ADI (far right) -->
+      <g>
+        <circle cx="91" cy="34" r="2.4" fill="#080812" stroke="#444" stroke-width=".18"/>
+        <circle cx="91" cy="34" r="2.1" fill="rgba(50,90,140,.6)"/>
+        <rect x="88.9" y="34" width="4.2" height="2.1" fill="rgba(120,75,40,.65)"/>
+        <line x1="88.9" y1="34" x2="93.1" y2="34" stroke="#fff" stroke-width=".15"/>
+        <rect x="90.4" y="33.7" width="1.2" height=".6" fill="#fc0"/>
+      </g>
+
+      <!-- CENTRE PEDESTAL — protrudes up between the pilots, holds CDUs/throttle/fuel/flap -->
+      <path d="M 33,42 L 67,42 L 64,60 L 36,60 Z"
+            fill="rgba(38,38,42,.96)" stroke="rgba(85,85,90,.55)" stroke-width=".2"/>
+      <!-- Two CDU keypads (left + right of centre, top of pedestal) -->
+      <rect x="34.5" y="42.6" width="9" height="5.4" rx=".25" fill="#0a0a0e" stroke="#3a3a40" stroke-width=".15"/>
+      <rect x="35" y="42.9" width="8" height="2" fill="rgba(40,80,40,.55)"/>
+      <text x="39" y="44.2" fill="#9fe69f" font-size=".65" font-family="monospace" text-anchor="middle">CDU 1</text>
+      <g fill="#222" stroke="#444" stroke-width=".04">
+        <rect x="35" y="45.2" width="1" height=".55"/><rect x="36.2" y="45.2" width="1" height=".55"/>
+        <rect x="37.4" y="45.2" width="1" height=".55"/><rect x="38.6" y="45.2" width="1" height=".55"/>
+        <rect x="39.8" y="45.2" width="1" height=".55"/><rect x="41" y="45.2" width="1" height=".55"/>
+        <rect x="42" y="45.2" width="1" height=".55"/>
+        <rect x="35" y="46" width="1" height=".55"/><rect x="36.2" y="46" width="1" height=".55"/>
+        <rect x="37.4" y="46" width="1" height=".55"/><rect x="38.6" y="46" width="1" height=".55"/>
+        <rect x="39.8" y="46" width="1" height=".55"/><rect x="41" y="46" width="1" height=".55"/>
+        <rect x="42" y="46" width="1" height=".55"/>
+        <rect x="35" y="46.8" width="1" height=".55"/><rect x="36.2" y="46.8" width="1" height=".55"/>
+        <rect x="37.4" y="46.8" width="1" height=".55"/><rect x="38.6" y="46.8" width="1" height=".55"/>
+        <rect x="39.8" y="46.8" width="1" height=".55"/><rect x="41" y="46.8" width="1" height=".55"/>
+        <rect x="42" y="46.8" width="1" height=".55"/>
+      </g>
+      <rect x="56.5" y="42.6" width="9" height="5.4" rx=".25" fill="#0a0a0e" stroke="#3a3a40" stroke-width=".15"/>
+      <rect x="57" y="42.9" width="8" height="2" fill="rgba(40,80,40,.55)"/>
+      <text x="61" y="44.2" fill="#9fe69f" font-size=".65" font-family="monospace" text-anchor="middle">CDU 2</text>
+      <g fill="#222" stroke="#444" stroke-width=".04">
+        <rect x="57" y="45.2" width="1" height=".55"/><rect x="58.2" y="45.2" width="1" height=".55"/>
+        <rect x="59.4" y="45.2" width="1" height=".55"/><rect x="60.6" y="45.2" width="1" height=".55"/>
+        <rect x="61.8" y="45.2" width="1" height=".55"/><rect x="63" y="45.2" width="1" height=".55"/>
+        <rect x="64" y="45.2" width="1" height=".55"/>
+        <rect x="57" y="46" width="1" height=".55"/><rect x="58.2" y="46" width="1" height=".55"/>
+        <rect x="59.4" y="46" width="1" height=".55"/><rect x="60.6" y="46" width="1" height=".55"/>
+        <rect x="61.8" y="46" width="1" height=".55"/><rect x="63" y="46" width="1" height=".55"/>
+        <rect x="64" y="46" width="1" height=".55"/>
+        <rect x="57" y="46.8" width="1" height=".55"/><rect x="58.2" y="46.8" width="1" height=".55"/>
+        <rect x="59.4" y="46.8" width="1" height=".55"/><rect x="60.6" y="46.8" width="1" height=".55"/>
+        <rect x="61.8" y="46.8" width="1" height=".55"/><rect x="63" y="46.8" width="1" height=".55"/>
+        <rect x="64" y="46.8" width="1" height=".55"/>
+      </g>
+      <!-- Centre standby instruments between CDUs -->
+      <rect x="44" y="42.6" width="12" height="5.4" rx=".25" fill="#080812" stroke="#3a3a40" stroke-width=".15"/>
+      <text x="50" y="44.5" fill="#9af" font-size=".75" font-family="monospace" text-anchor="middle">STBY ADI</text>
+      <circle cx="50" cy="46.6" r="1" fill="rgba(50,90,140,.55)" stroke="#555" stroke-width=".1"/>
+
+      <!-- THROTTLE QUADRANT — main interactive feature -->
+      <rect x="38" y="48.4" width="24" height="5.6" rx=".3" fill="rgba(28,28,32,.95)" stroke="rgba(60,60,65,.45)" stroke-width=".15"/>
+      <!-- Two large thrust levers (idle position) -->
+      <rect x="42" y="49.2" width="3" height="4" rx=".4" fill="#0a0a0e" stroke="#444" stroke-width=".12"/>
+      <ellipse cx="43.5" cy="49.4" rx="1.6" ry=".7" fill="#1a1a1e"/>
+      <text x="43.5" y="51.4" fill="#aaa" font-size=".65" font-family="monospace" text-anchor="middle">1</text>
+      <rect x="55" y="49.2" width="3" height="4" rx=".4" fill="#0a0a0e" stroke="#444" stroke-width=".12"/>
+      <ellipse cx="56.5" cy="49.4" rx="1.6" ry=".7" fill="#1a1a1e"/>
+      <text x="56.5" y="51.4" fill="#aaa" font-size=".65" font-family="monospace" text-anchor="middle">2</text>
+      <!-- Speed brake lever (left edge) -->
+      <rect x="39" y="49.5" width="1.4" height="3.4" rx=".2" fill="#0a0a0e" stroke="#444" stroke-width=".1"/>
+      <text x="39.7" y="53.6" fill="#888" font-size=".5" font-family="monospace" text-anchor="middle">SPD BR</text>
+      <!-- Flap lever (right edge) -->
+      <rect x="59.6" y="49.5" width="1.4" height="3.4" rx=".2" fill="#0a0a0e" stroke="#444" stroke-width=".1"/>
+      <text x="60.3" y="53.6" fill="#888" font-size=".5" font-family="monospace" text-anchor="middle">FLAP</text>
+      <!-- FUEL CUTOFF LEVERS (mushroom heads, between throttles) — both at CUTOFF position -->
+      <g>
+        <ellipse cx="47.5" cy="51.6" rx=".9" ry=".7" fill="#0a0a0e" stroke="#333" stroke-width=".08"/>
+        <line x1="47.5" y1="51.6" x2="47" y2="52.4" stroke="#444" stroke-width=".25"/>
+        <text x="47.5" y="49.3" fill="#888" font-size=".55" font-family="monospace" text-anchor="middle">ENG1</text>
+        <ellipse cx="52.5" cy="51.6" rx=".9" ry=".7" fill="#0a0a0e" stroke="#333" stroke-width=".08"/>
+        <line x1="52.5" y1="51.6" x2="52" y2="52.4" stroke="#444" stroke-width=".25"/>
+        <text x="52.5" y="49.3" fill="#888" font-size=".55" font-family="monospace" text-anchor="middle">ENG2</text>
+        <text x="50" y="53.6" fill="#f55" font-size=".55" font-family="monospace" text-anchor="middle">FUEL CUTOFF</text>
+      </g>
+      <!-- Lower pedestal: TCAS / transponder / radios -->
+      <rect x="40" y="54.4" width="20" height="4.2" rx=".25" fill="rgba(34,34,38,.95)" stroke="rgba(60,60,65,.4)" stroke-width=".12"/>
+      <rect x="41" y="55" width="6" height="1.4" fill="#1a3a14" stroke="#363" stroke-width=".07"/>
+      <text x="44" y="56" fill="#9be69b" font-size=".65" font-family="monospace" text-anchor="middle">131.92</text>
+      <rect x="48" y="55" width="4" height="1.4" fill="#1a3a14" stroke="#363" stroke-width=".07"/>
+      <text x="50" y="56" fill="#9be69b" font-size=".65" font-family="monospace" text-anchor="middle">1234</text>
+      <rect x="53" y="55" width="6" height="1.4" fill="#1a3a14" stroke="#363" stroke-width=".07"/>
+      <text x="56" y="56" fill="#9be69b" font-size=".65" font-family="monospace" text-anchor="middle">125.90</text>
+      <text x="50" y="58" fill="rgba(120,140,140,.7)" font-size=".55" font-family="monospace" text-anchor="middle">RADIO · XPDR · TCAS</text>
     </svg>
   </div>
   <div id="p-source" class="panel">
@@ -1039,47 +1230,44 @@ function makeFlightPath(){
   for(let i2=DI;i2<N_PTS;i2++){
     const dot=new THREE.Mesh(dotG,new THREE.MeshBasicMaterial({color:i2===N_PTS-1?0xff2222:0xffaa44}));
     dot.position.copy(pts[i2].p);scene.add(dot);
-    // Persistent ADS-B sample label — billboard sprite that always faces camera
-    scene.add(makeAdsLabel(pts[i2]));
+    // Persistent ADS-B sample label — HTML vector text projected to 2D each frame
+    adsLabels.push(makeAdsLabel(pts[i2]));
   }
 }
-// Sprite label for an ADS-B sample point. Shows alt/spd/V/S, always
-// camera-facing, naturally clips when off-screen.
+// Build an HTML label DOM element for an ADS-B point.
+// Stored in adsLabels[]; per-frame projection updates its screen position.
+const adsLabels = [];
 function makeAdsLabel(pt){
-  const cv = document.createElement('canvas');
-  cv.width = 256; cv.height = 96;
-  const ctx = cv.getContext('2d');
-  // Translucent dark backdrop for readability over varied terrain
-  ctx.fillStyle = 'rgba(0,0,0,.62)';
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(2,2,252,92,6); else ctx.rect(2,2,252,92);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,170,80,.7)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  // Three lines: ALT / GS / V/S
-  ctx.font = 'bold 22px "Courier New", monospace';
-  ctx.fillStyle = '#ffe6b0';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(pt.alt.toLocaleString() + ' ft', 128, 22);
-  ctx.font = 'bold 18px "Courier New", monospace';
-  ctx.fillStyle = '#cdf2d6';
-  ctx.fillText(pt.spd + ' kts', 128, 50);
-  // V/S coloured: red if descending fast, green if climbing
-  const vsAbs = Math.abs(pt.vs);
-  ctx.fillStyle = pt.vs < -5000 ? '#ff7766' : pt.vs > 1000 ? '#88ee88' : '#cdcdcd';
-  ctx.font = 'bold 16px "Courier New", monospace';
-  const vsTxt = (pt.vs >= 0 ? '+' : '') + pt.vs.toLocaleString() + ' fpm';
-  ctx.fillText(vsTxt, 128, 76);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.minFilter = THREE.LinearFilter;
-  const mat = new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false});
-  const sp = new THREE.Sprite(mat);
-  sp.position.copy(pt.p);
-  sp.position.y += 1.6;       // slight offset above the dot
-  sp.scale.set(5.6, 2.1, 1);  // size in world units
-  return sp;
+  const div = document.createElement('div');
+  div.className = 'ads-label';
+  const vsColor = pt.vs < -5000 ? '#ff8a78' : pt.vs > 1000 ? '#9af09a' : '#dcdcdc';
+  const vsTxt = (pt.vs >= 0 ? '+' : '') + pt.vs.toLocaleString();
+  div.innerHTML =
+    '<div class="ads-alt">' + pt.alt.toLocaleString() + ' ft</div>' +
+    '<div class="ads-spd">' + pt.spd + ' kts</div>' +
+    '<div class="ads-vs" style="color:' + vsColor + '">' + vsTxt + ' fpm</div>';
+  document.getElementById('hud').appendChild(div);
+  return { div: div, pos: pt.p.clone(), yOffset: 1.6 };
+}
+// Per-frame: project each ADS-B label's world position to screen 2D and
+// position its DOM element. Hide if behind the camera or off-screen.
+const _adsProj = new THREE.Vector3();
+function updAdsLabels(){
+  for (let i = 0; i < adsLabels.length; i++) {
+    const l = adsLabels[i];
+    _adsProj.copy(l.pos);
+    _adsProj.y += l.yOffset;
+    _adsProj.project(cam);
+    const off = _adsProj.z > 1 || Math.abs(_adsProj.x) > 1.05 || Math.abs(_adsProj.y) > 1.05;
+    if (off) {
+      if (l.div.style.display !== 'none') l.div.style.display = 'none';
+    } else {
+      if (l.div.style.display === 'none') l.div.style.display = 'block';
+      const x = (_adsProj.x + 1) * 0.5 * innerWidth;
+      const y = (-_adsProj.y + 1) * 0.5 * innerHeight;
+      l.div.style.transform = 'translate(-50%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+    }
+  }
 }
 
 function makeAltLabels(){
@@ -1698,6 +1886,7 @@ function animate(ts){
   updEvt(S.t);
   updActions(S.t);
   updCam(d);
+  updAdsLabels();
   oc.update();
   updHUD(d);
   R.render(scene,cam);
