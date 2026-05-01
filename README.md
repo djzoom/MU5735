@@ -61,13 +61,26 @@ Where T = FDR stop time (~26,000 ft, 14:21:01 CST).
 
 ### 3. Estimated Values 估算值
 
-Attitude is estimated **only after FDR power loss** (after 14:21:01 CST). During the FDR recording window (14:20:41–14:21:01), disclosed FDR data is used directly.
+Attitude is split into three phases. Cruise is held at a stable nominal attitude; the FDR window uses disclosed envelope values; the post-FDR dive is derived from trajectory.
 
-| Parameter | Method | Applied Period |
-|-----------|--------|---------------|
-| Pitch (俯仰角) | FPA from spline tangent + AOA estimate from V/S magnitude | After FDR stop |
-| Bank (倾斜角) | Heading rate × 6 (assumes coordinated flight) | After FDR stop |
-| G-load (G载荷) | Approximation from vertical speed | Entire flight |
+| Phase | Window (CST) | Pitch (俯仰角) | Bank (倾斜角) | Notes |
+|-------|--------------|----------------|---------------|-------|
+| Cruise 巡航 | up to 14:20:39 | Held at +2° AOA | 0° (wings level) | Visual altitude locked to ADS-B; no spline-derived attitude jitter |
+| FDR disclosed 已披露段 | 14:20:41 – 14:21:01 | −29°~−41° (−35° + 6° osc, period ~8s) | ±88° (slow oscillation, period ~10s) | Matches NTSB-disclosed envelope (pitch −30°~−40°, roll >90°), modelled at aerodynamically plausible 737-LOC rates |
+| Post-FDR dive 断电后俯冲 | 14:21:01 – impact | FPA (spline tangent) + AOA from V/S magnitude | Heading rate × 4, clamped to ±55° | Coordinated-turn proxy |
+
+**Aerodynamic constraints applied across all phases:**
+
+| Constraint | Cruise | FDR window | Post-FDR dive |
+|------------|--------|------------|---------------|
+| Pitch rate limit | ≤18 °/s | ≤30 °/s | ≤18 °/s |
+| Roll rate limit | ≤50 °/s | ≤75 °/s | ≤50 °/s |
+| Heading rate limit | ≤4 °/s | ≤22 °/s | ≤22 °/s |
+| Smoothing τ (low-pass) | 2.5 s | 0.7 s | 1.1 s |
+
+| Other | Method | Applied Period |
+|-------|--------|---------------|
+| G-load (G载荷) | Approximation from vertical speed; FDR window adds oscillation envelope | Entire flight |
 
 ### 4. Unavailable Data 未公开数据
 
@@ -113,9 +126,11 @@ The following are **not publicly available** and cannot be used:
 - **Rendering**: Three.js r164 with ES modules, logarithmic depth buffer, ACES filmic tone mapping
 - **Trajectory**: CatmullRom spline (centripetal, open) through 27 ADS-B waypoints
 - **Attitude**: Euler angles (YZX intrinsic order) — heading from ADS-B, pitch/roll from FDR (when available) or estimated from trajectory
-- **FDR attitude model**: During FDR window (t=271–291s), pitch and roll values reflect NTSB-disclosed FDR plots with oscillation modeling dual pilot input
-- **Post-FDR attitude model**: Pitch = Flight Path Angle (spline tangent) + AOA estimate (V/S-based); Bank = heading rate × 6
-- **Smoothing**: Frame-rate-independent exponential smoothing (τ = 0.8s) on all attitude channels
+- **Cruise attitude model**: Held at +2° AOA, wings level; visual altitude locked to ADS-B data to suppress spline Y-jitter (no shake along the green cruise line)
+- **FDR attitude model**: During FDR window (t=271–291s), pitch eases into −35° with ±6° oscillation (period ~8s); bank oscillates ±88° (period ~10s) — matches NTSB-disclosed envelope at aerodynamically plausible 737 loss-of-control rates
+- **Post-FDR attitude model**: Pitch = Flight Path Angle (spline tangent) + AOA estimate (V/S-based, capped at −18°); Bank = heading rate × 4, clamped to ±55°
+- **Smoothing**: Frame-rate-independent exponential low-pass with phase-tuned time constants (τ = 2.5s cruise, 0.7s FDR, 1.1s post-FDR)
+- **Rate limits**: Per-axis aerodynamic clamps on smoothed output — pitch ≤18°/s (30°/s during FDR), roll ≤50°/s (75°/s during FDR), heading ≤4°/s cruise / ≤22°/s dive
 - **Terrain**: Google satellite tiles at zoom 13, procedural elevation displacement
 - **UI**: Bilingual (English / 中文), responsive layout for mobile and desktop
 
