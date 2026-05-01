@@ -197,13 +197,15 @@ canvas{display:block}
       &nbsp; FDR phase 14:20:41-14:21:01: disclosed envelope 已披露包线<br>
       &nbsp; &nbsp; <span class="src-note">Pitch &minus;35&deg; &plusmn;6&deg; (period ~8s)<br>
       &nbsp; &nbsp; Bank &plusmn;88&deg; (period ~10s) — matches NTSB envelope</span><br>
-      &nbsp; Post-FDR 断电后:<br>
-      &nbsp; &nbsp; Pitch = FPA (spline tangent) + AOA from V/S<br>
-      &nbsp; &nbsp; Bank = heading rate &times; 4, clamped &plusmn;55&deg;<br>
-      &nbsp; &nbsp; <span class="src-note">Coordinated-turn proxy 协调飞行近似</span><br>
+      &nbsp; Post-FDR 断电后 — 三轴统一从 3D 速度矢量推导:<br>
+      &nbsp; &nbsp; Heading 航向 = atan2(tan.x, &minus;tan.z) (spline track)<br>
+      &nbsp; &nbsp; Pitch 俯仰 = asin(tan.y) + AOA(V/S)<br>
+      &nbsp; &nbsp; Bank 倾斜 = &minus;atan(v &middot; &omega; / g), &omega; from &Delta;track / 1.2s<br>
+      &nbsp; &nbsp; <span class="src-note">Nose follows trajectory (no sideslip) 机头沿航迹（无侧滑）<br>
+      &nbsp; &nbsp; Coordinated-turn relation 协调转弯公式</span><br>
       &nbsp; Aerodynamic rate limits 气动速率限制:<br>
-      &nbsp; &nbsp; <span class="src-note">Pitch &le;18&deg;/s (30&deg;/s LOC), Roll &le;50&deg;/s (75&deg;/s LOC)<br>
-      &nbsp; &nbsp; Hdg &le;4&deg;/s cruise, &le;22&deg;/s dive</span><br>
+      &nbsp; &nbsp; <span class="src-note">Pitch &le;25&deg;/s (30&deg;/s LOC), Roll &le;60&deg;/s (75&deg;/s LOC)<br>
+      &nbsp; &nbsp; Hdg &le;4&deg;/s cruise, &le;50&deg;/s dive; &omega; cap 35&deg;/s</span><br>
       &nbsp; G-load G载荷 &mdash; rough approx 粗略估算<br><br>
       <b style="color:rgba(120,120,120,.7)">&#9632; UNAVAILABLE 未公开</b><br>
       &nbsp; Actual pitch / roll / AOA 实际俯仰·滚转·迎角<br>
@@ -335,6 +337,34 @@ function interp(t){
   const inFDR    = t >= 271 && t < 291;
   let tP, tB, fpa = 0;
 
+  // 3D velocity vector (unit) from spline tangent.
+  // +X=East, +Y=Up, -Z=North → track = atan2(x, -z), FPA = asin(y).
+  const tan3 = curve.getTangent(Math.min(0.9999, Math.max(0.0001, u)));
+  const horiz3 = Math.sqrt(tan3.x * tan3.x + tan3.z * tan3.z);
+  const fpa3D  = Math.atan2(tan3.y, horiz3);
+  let track3D  = Math.atan2(tan3.x, -tan3.z) * 180 / Math.PI;
+  if (track3D < 0) track3D += 360;
+
+  // Yaw rate from centered finite difference of track (rad/s).
+  // Used for coordinated-bank derivation. Skipped in cruise (≈ 0).
+  let yawRate = 0;
+  if (!inCruise) {
+    const dts = 0.6;
+    const tp = Math.max(0,   t - dts);
+    const tn = Math.min(DUR, t + dts);
+    const tnP = curve.getTangent(Math.min(0.9999, Math.max(0.0001, t2u(tp))));
+    const tnN = curve.getTangent(Math.min(0.9999, Math.max(0.0001, t2u(tn))));
+    let dTrack = Math.atan2(tnN.x, -tnN.z) - Math.atan2(tnP.x, -tnP.z);
+    if (dTrack >  Math.PI) dTrack -= 2 * Math.PI;
+    if (dTrack < -Math.PI) dTrack += 2 * Math.PI;
+    const dtSpan = (tn - tp) || 1e-3;
+    yawRate = dTrack / dtSpan;
+    // Plausibility cap (737 LOC peak yaw rate).
+    const YR_MAX = 35 * D2R;
+    if (yawRate >  YR_MAX) yawRate =  YR_MAX;
+    if (yawRate < -YR_MAX) yawRate = -YR_MAX;
+  }
+
   if (inCruise) {
     // Steady cruise: hold ~2° AOA, wings level. Lock visual altitude
     // to the data so spline Y-jitter cannot produce attitude shake.
@@ -351,29 +381,34 @@ function interp(t){
     tP = (2 + ramp * (-35 + 6 * Math.sin(p * 5 * Math.PI - 0.4))) * D2R;
     // Bank: large slow excursion peaking ±88°, period ~10s
     tB = ramp * 88 * D2R * Math.sin(p * 4 * Math.PI + 0.3);
+    fpa = fpa3D;
   } else {
-    // Post-FDR dive / recovery: derive from trajectory.
-    const tan3 = curve.getTangent(Math.min(0.9999, Math.max(0.0001, u)));
-    fpa = Math.atan2(tan3.y, Math.sqrt(tan3.x * tan3.x + tan3.z * tan3.z));
-    // AOA: column pushed forward → nose below flight path during dive.
+    // Post-FDR dive / recovery: derive ALL THREE attitude axes from the
+    // 3D trajectory tangent so the nose visually follows the path
+    // (coordinated flight, no sideslip).
+    fpa = fpa3D;
+    // Heading = horizontal direction of velocity vector.
+    tH = track3D;
+    // Pitch = FPA + AOA correction (column-pushed → nose below FP).
     let aoa = 2 * D2R;
     if (vs < -1000)      aoa = (2 - Math.min(18, Math.abs(vs) / 30000 * 18)) * D2R;
-    else if (vs > 1000)  aoa = (2 + Math.min(4, vs / 10000 * 4)) * D2R;
-    tP = Math.max(-72 * D2R, Math.min(20 * D2R, fpa + aoa));
-    // Bank from heading rate (coordinated-turn proxy), conservative gain.
-    const hr = seg > 0 ? dh / seg : 0;
-    tB = Math.max(-55 * D2R, Math.min(55 * D2R, -hr * D2R * 4));
+    else if (vs > 1000)  aoa = (2 + Math.min(4,  vs / 10000 * 4)) * D2R;
+    tP = Math.max(-72 * D2R, Math.min(20 * D2R, fpa3D + aoa));
+    // Bank from coordinated-turn relation tan(φ) = v·ω / g.
+    const v_ms  = spd * 0.5144;
+    const tBraw = -Math.atan(v_ms * yawRate / 9.81);
+    tB = Math.max(-65 * D2R, Math.min(65 * D2R, tBraw));
   }
 
   // ── Smoothing + aerodynamic rate limits ──
   // Frame-rate independent low-pass; phase-tuned time constant.
   const el = _lt >= 0 ? Math.abs(t - _lt) : 1/60; _lt = t;
-  const tau = inCruise ? 2.5 : (inFDR ? 0.7 : 1.1);
+  const tau = inCruise ? 2.5 : (inFDR ? 0.7 : 0.6);
   const al  = 1 - Math.exp(-el / tau);
   // Realistic 737 LOC angular rates (deg/s).
-  const dPmax = (inFDR ? 30 : 18) * D2R * el;
-  const dBmax = (inFDR ? 75 : 50) * D2R * el;
-  const dHmax = (inCruise ? 4 : 22) * el;
+  const dPmax = (inFDR ? 30 : 25) * D2R * el;
+  const dBmax = (inFDR ? 75 : 60) * D2R * el;
+  const dHmax = (inCruise ? 4 : 50) * el;
 
   let stepP = (tP - smP) * al;
   if (stepP >  dPmax) stepP =  dPmax;

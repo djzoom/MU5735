@@ -63,20 +63,21 @@ Where T = FDR stop time (~26,000 ft, 14:21:01 CST).
 
 Attitude is split into three phases. Cruise is held at a stable nominal attitude; the FDR window uses disclosed envelope values; the post-FDR dive is derived from trajectory.
 
-| Phase | Window (CST) | Pitch (俯仰角) | Bank (倾斜角) | Notes |
-|-------|--------------|----------------|---------------|-------|
-| Cruise 巡航 | up to 14:20:39 | Held at +2° AOA | 0° (wings level) | Visual altitude locked to ADS-B; no spline-derived attitude jitter |
-| FDR disclosed 已披露段 | 14:20:41 – 14:21:01 | −29°~−41° (−35° + 6° osc, period ~8s) | ±88° (slow oscillation, period ~10s) | Matches NTSB-disclosed envelope (pitch −30°~−40°, roll >90°), modelled at aerodynamically plausible 737-LOC rates |
-| Post-FDR dive 断电后俯冲 | 14:21:01 – impact | FPA (spline tangent) + AOA from V/S magnitude | Heading rate × 4, clamped to ±55° | Coordinated-turn proxy |
+| Phase | Window (CST) | Heading (航向) | Pitch (俯仰角) | Bank (倾斜角) | Notes |
+|-------|--------------|----------------|----------------|---------------|-------|
+| Cruise 巡航 | up to 14:20:39 | ADS-B linear interp | Held at +2° AOA | 0° (wings level) | Visual altitude locked to ADS-B; no spline-derived attitude jitter |
+| FDR disclosed 已披露段 | 14:20:41 – 14:21:01 | ADS-B linear interp | −29°~−41° (−35° + 6° osc, period ~8s) | ±88° (slow oscillation, period ~10s) | Matches NTSB-disclosed envelope (pitch −30°~−40°, roll >90°), modelled at aerodynamically plausible 737-LOC rates |
+| Post-FDR dive 断电后俯冲 | 14:21:01 – impact | **3D track from spline tangent** — atan2(tan.x, −tan.z) | **3D FPA from spline tangent** — asin(tan.y) + AOA from V/S magnitude | **Coordinated turn** — tB = −atan(v · ω / g), where ω is yaw-rate from centered finite-difference of track | All three axes derived from the same 3D velocity vector — nose visually follows the trajectory (no sideslip) |
 
 **Aerodynamic constraints applied across all phases:**
 
 | Constraint | Cruise | FDR window | Post-FDR dive |
 |------------|--------|------------|---------------|
-| Pitch rate limit | ≤18 °/s | ≤30 °/s | ≤18 °/s |
-| Roll rate limit | ≤50 °/s | ≤75 °/s | ≤50 °/s |
-| Heading rate limit | ≤4 °/s | ≤22 °/s | ≤22 °/s |
-| Smoothing τ (low-pass) | 2.5 s | 0.7 s | 1.1 s |
+| Pitch rate limit | ≤25 °/s | ≤30 °/s | ≤25 °/s |
+| Roll rate limit | ≤60 °/s | ≤75 °/s | ≤60 °/s |
+| Heading rate limit | ≤4 °/s | ≤50 °/s | ≤50 °/s |
+| Yaw-rate cap (input to bank) | — | — | ≤35 °/s (spline plausibility) |
+| Smoothing τ (low-pass) | 2.5 s | 0.7 s | 0.6 s |
 
 | Other | Method | Applied Period |
 |-------|--------|---------------|
@@ -128,9 +129,9 @@ The following are **not publicly available** and cannot be used:
 - **Attitude**: Euler angles (YZX intrinsic order) — heading from ADS-B, pitch/roll from FDR (when available) or estimated from trajectory
 - **Cruise attitude model**: Held at +2° AOA, wings level; visual altitude locked to ADS-B data to suppress spline Y-jitter (no shake along the green cruise line)
 - **FDR attitude model**: During FDR window (t=271–291s), pitch eases into −35° with ±6° oscillation (period ~8s); bank oscillates ±88° (period ~10s) — matches NTSB-disclosed envelope at aerodynamically plausible 737 loss-of-control rates
-- **Post-FDR attitude model**: Pitch = Flight Path Angle (spline tangent) + AOA estimate (V/S-based, capped at −18°); Bank = heading rate × 4, clamped to ±55°
-- **Smoothing**: Frame-rate-independent exponential low-pass with phase-tuned time constants (τ = 2.5s cruise, 0.7s FDR, 1.1s post-FDR)
-- **Rate limits**: Per-axis aerodynamic clamps on smoothed output — pitch ≤18°/s (30°/s during FDR), roll ≤50°/s (75°/s during FDR), heading ≤4°/s cruise / ≤22°/s dive
+- **Post-FDR attitude model (3-axis from velocity vector)**: All three axes derived from the same 3D spline tangent so the nose visually tracks the path. Heading = atan2(tan.x, −tan.z); Pitch = asin(tan.y) + AOA(V/S); Bank = −atan(v · ω / g) where ω is the yaw-rate from a centered finite-difference (±0.6 s) of the track angle, capped at 35°/s for spline plausibility. Final clamps: pitch ∈[−72°,+20°], bank ∈[−65°,+65°]
+- **Smoothing**: Frame-rate-independent exponential low-pass with phase-tuned time constants (τ = 2.5s cruise, 0.7s FDR, 0.6s post-FDR)
+- **Rate limits**: Per-axis aerodynamic clamps on smoothed output — pitch ≤25°/s (30°/s during FDR), roll ≤60°/s (75°/s during FDR), heading ≤4°/s cruise / ≤50°/s dive
 - **Terrain**: Google satellite tiles at zoom 13, procedural elevation displacement
 - **UI**: Bilingual (English / 中文), responsive layout for mobile and desktop
 
