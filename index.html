@@ -190,13 +190,20 @@ canvas{display:block}
       &nbsp; Dual input — two pilots fighting 两人争夺操纵<br>
       &nbsp; FDR power loss ~26,000 ft FDR断电<br>
       &nbsp; <a href="https://www.ntsb.gov" target="_blank">NTSB FOIA DCA22WA102</a><br><br>
-      <b style="color:rgba(255,100,80,.7)">&#9632; ESTIMATED 估算值</b> (after FDR stop 断电后)<br>
-      &nbsp; Pitch 俯仰角 = FPA + AOA estimate<br>
-      &nbsp; &nbsp; <span class="src-note">FPA from trajectory tangent 航迹切线方向<br>
-      &nbsp; &nbsp; AOA from V/S magnitude 迎角由垂直速率估算<br>
-      &nbsp; &nbsp; FDR phase (14:20:41-14:21:01): uses disclosed data 使用已披露FDR数据</span><br>
-      &nbsp; Bank 倾斜角 = heading rate &times; 6<br>
-      &nbsp; &nbsp; <span class="src-note">Assumes coordinated flight 假设协调飞行</span><br>
+      <b style="color:rgba(255,100,80,.7)">&#9632; ESTIMATED 估算值</b><br>
+      &nbsp; Cruise 巡航: +2&deg; AOA, wings level 机翼水平<br>
+      &nbsp; &nbsp; <span class="src-note">Stable nominal attitude — no spline-derived jitter<br>
+      &nbsp; &nbsp; 稳定标称姿态，无样条切线抖动</span><br>
+      &nbsp; FDR phase 14:20:41-14:21:01: disclosed envelope 已披露包线<br>
+      &nbsp; &nbsp; <span class="src-note">Pitch &minus;35&deg; &plusmn;6&deg; (period ~8s)<br>
+      &nbsp; &nbsp; Bank &plusmn;88&deg; (period ~10s) — matches NTSB envelope</span><br>
+      &nbsp; Post-FDR 断电后:<br>
+      &nbsp; &nbsp; Pitch = FPA (spline tangent) + AOA from V/S<br>
+      &nbsp; &nbsp; Bank = heading rate &times; 4, clamped &plusmn;55&deg;<br>
+      &nbsp; &nbsp; <span class="src-note">Coordinated-turn proxy 协调飞行近似</span><br>
+      &nbsp; Aerodynamic rate limits 气动速率限制:<br>
+      &nbsp; &nbsp; <span class="src-note">Pitch &le;18&deg;/s (30&deg;/s LOC), Roll &le;50&deg;/s (75&deg;/s LOC)<br>
+      &nbsp; &nbsp; Hdg &le;4&deg;/s cruise, &le;22&deg;/s dive</span><br>
       &nbsp; G-load G载荷 &mdash; rough approx 粗略估算<br><br>
       <b style="color:rgba(120,120,120,.7)">&#9632; UNAVAILABLE 未公开</b><br>
       &nbsp; Actual pitch / roll / AOA 实际俯仰·滚转·迎角<br>
