@@ -64,6 +64,11 @@ canvas{display:block}
 .btn:hover{background:rgba(0,80,42,.85);border-color:rgba(0,255,136,1);color:#fff}
 .btn.active{background:rgba(0,170,90,.92);color:#fff;border-color:#00ff88;box-shadow:0 0 9px rgba(0,255,136,.55),0 1px 2px rgba(0,0,0,.4)}
 .sep{width:1px;background:rgba(0,255,136,.15);margin:0 4px}
+/* Speed selector — hover-expanding dropdown */
+.btn-speed-wrap{position:relative;display:inline-block;pointer-events:auto}
+.speed-menu{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:5px;flex-direction:column;gap:3px;padding:4px;background:rgba(0,30,18,.92);border:1px solid rgba(0,255,136,.55);border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.5);z-index:30}
+.btn-speed-wrap:hover .speed-menu,.btn-speed-wrap:focus-within .speed-menu{display:flex}
+.speed-menu .speed-opt{display:block;width:48px;padding:4px 8px;text-align:center}
 #timeline{width:min(560px,72vw);height:6px;background:rgba(0,0,0,.5);border:1px solid rgba(180,180,180,.55);border-radius:3px;margin:6px auto;cursor:pointer;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 #timeline-fill{height:100%;background:linear-gradient(90deg,#00cc66,#ff4444);border-radius:3px;width:0}
 #timeline-marker{position:absolute;top:-4px;width:12px;height:12px;background:#ddd;border-radius:50%;transform:translateX(-50%);left:0;z-index:3}
@@ -304,15 +309,21 @@ canvas{display:block}
   <div id="p-alt" class="panel"><div id="alt-num">ALT</div><div id="alt-bar" style="height:100%"></div></div>
   <div id="p-controls" class="panel">
     <div class="btn-row">
-      <button class="btn" id="btn-play">&#9654; Play</button>
-      <button class="btn" id="btn-pause">&#10073;&#10073;</button>
+      <button class="btn" id="btn-playpause" title="Space: Play / Pause">&#9654; Play 播放</button>
       <div class="sep"></div>
-      <button class="btn" id="btn-1x">1&times;</button>
-      <button class="btn active" id="btn-2x">2&times;</button>
-      <button class="btn" id="btn-5x">5&times;</button>
-      <button class="btn" id="btn-10x">10&times;</button>
+      <!-- Speed selector: main button shows current speed; hover expands menu -->
+      <div class="btn-speed-wrap">
+        <button class="btn" id="btn-speed" title="Hover for speeds 悬停选择倍速">2&times;</button>
+        <div class="speed-menu">
+          <button class="btn speed-opt" data-spd="1">1&times;</button>
+          <button class="btn speed-opt active" data-spd="2">2&times;</button>
+          <button class="btn speed-opt" data-spd="5">5&times;</button>
+          <button class="btn speed-opt" data-spd="10">10&times;</button>
+        </div>
+      </div>
       <div class="sep"></div>
-      <button class="btn" id="btn-jump">&#9660; Descent</button>
+      <!-- Next event: skip to next event in timeline, then PAUSE there -->
+      <button class="btn" id="btn-next-evt" title="Skip to next event 跳到下一事件并暂停">&#9654;&#10073; Next 下一事件</button>
     </div>
     <div class="btn-row" id="cam-row">
       <button class="btn cam-btn" id="cam-free">Free</button>
@@ -1933,19 +1944,48 @@ function seekTo(t){
   oc.target.copy(d.pos);cam.position.copy(d.pos).add(off);
   prevAircraftPos.copy(d.pos);
 }
-$('btn-play').onclick=()=>{
-  if(S.t>=DUR){
-    S.t=START_T;reset();
-    const d=interp(START_T);prevAircraftPos.copy(d.pos);
-    const hr0=d.hdg*D2R;
-    cam.position.copy(d.pos).add(new THREE.Vector3(-Math.sin(hr0)*7,2.5,Math.cos(hr0)*7));
+// Combined Play/Pause toggle. If at end of playback, restart from cruise.
+function updPlayPauseBtn(){
+  $('btn-playpause').innerHTML = S.playing
+    ? '&#10073;&#10073; Pause 暂停'
+    : '&#9654; Play 播放';
+}
+$('btn-playpause').onclick = () => {
+  if (S.t >= DUR) {
+    S.t = START_T; reset();
+    const d = interp(START_T); prevAircraftPos.copy(d.pos);
+    const hr0 = d.hdg * D2R;
+    cam.position.copy(d.pos).add(new THREE.Vector3(-Math.sin(hr0)*7, 2.5, Math.cos(hr0)*7));
     oc.target.copy(d.pos);
+    S.playing = true;
+  } else {
+    S.playing = !S.playing;
   }
-  S.playing=true;
+  updPlayPauseBtn();
 };
-$('btn-pause').onclick=()=>{S.playing=false;};
-['1x','2x','5x','10x'].forEach(l=>{$('btn-'+l).onclick=()=>{S.speed=parseInt(l);document.querySelectorAll('#p-controls .btn-row:first-child .btn').forEach(b=>b.classList.remove('active'));$('btn-'+l).classList.add('active');};});
-$('btn-jump').onclick=()=>{S.t=pts[DI].dt-8;reset();S.playing=true;S.speed=2;const dp=pts[DI].p;cam.position.set(dp.x-20,dp.y+10,dp.z+30);oc.target.copy(dp);prevAircraftPos.copy(dp);};
+updPlayPauseBtn();
+// Speed selector — main button shows current speed; menu options set it.
+function updSpeedBtn(){
+  $('btn-speed').innerHTML = S.speed + '&times;';
+  document.querySelectorAll('.speed-opt').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.spd) === S.speed);
+  });
+}
+document.querySelectorAll('.speed-opt').forEach(opt => {
+  opt.onclick = e => { S.speed = parseInt(opt.dataset.spd); updSpeedBtn(); };
+});
+updSpeedBtn();
+// Next-event button: jump to next EVT entry after current time, then PAUSE.
+$('btn-next-evt').onclick = () => {
+  let nextT = -1;
+  for (const e of EVT) {
+    if (e.t > S.t + 0.4) { nextT = e.t; break; }
+  }
+  if (nextT < 0) return;     // no more events
+  seekTo(nextT);
+  S.playing = false;          // pause at the event so user reads the banner
+  updPlayPauseBtn();
+};
 $('timeline').onclick=ev=>{const r=$('timeline').getBoundingClientRect();seekTo(START_T+(ev.clientX-r.left)/r.width*(DUR-START_T));};
 
 // Camera mode buttons
@@ -1970,7 +2010,7 @@ actInit();
 
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);});
 
-// Spacebar shortcut: toggle play / pause (also restart from descent if at end)
+// Spacebar shortcut: toggle play / pause (also restart from cruise if at end)
 addEventListener('keydown', e => {
   if (e.code !== 'Space' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   e.preventDefault();
@@ -1984,6 +2024,7 @@ addEventListener('keydown', e => {
   } else {
     S.playing = !S.playing;
   }
+  updPlayPauseBtn();
 });
 
 /* ================================================================
