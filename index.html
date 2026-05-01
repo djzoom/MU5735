@@ -9,9 +9,13 @@
 body{overflow:hidden;background:#000;font-family:'Courier New',monospace;color:#c0d8c0}
 canvas{display:block}
 .panel{
-  background:rgba(0,0,0,.72);border:1px solid rgba(0,255,136,.18);
-  border-radius:4px;padding:10px 14px;backdrop-filter:blur(4px);
+  background:transparent;border:none;border-radius:0;
+  padding:10px 14px;backdrop-filter:none;
 }
+/* Legibility shadow on all HUD text (panels lost their dark backdrop) */
+.panel,.panel *{text-shadow:0 0 4px rgba(0,0,0,.92),0 0 1.5px rgba(0,0,0,1)}
+.panel .btn{text-shadow:none}
+.panel #timeline,.panel #event-banner,.panel #alt-bar{text-shadow:none}
 #hud{position:absolute;inset:0;pointer-events:none;font-size:12px}
 
 #p-title{position:absolute;top:12px;left:50%;transform:translateX(-50%);text-align:center;padding:8px 28px;white-space:nowrap}
@@ -37,7 +41,7 @@ canvas{display:block}
 .btn:hover{background:rgba(0,255,136,.25)}
 .btn.active{background:rgba(0,255,136,.35);color:#fff;border-color:#00ff88}
 .sep{width:1px;background:rgba(0,255,136,.15);margin:0 4px}
-#timeline{width:min(560px,72vw);height:5px;background:#222;border-radius:3px;margin:6px auto;cursor:pointer;position:relative}
+#timeline{width:min(560px,72vw);height:5px;background:rgba(180,180,180,.18);border:1px solid rgba(180,180,180,.32);border-radius:3px;margin:6px auto;cursor:pointer;position:relative}
 #timeline-fill{height:100%;background:linear-gradient(90deg,#00cc66,#ff4444);border-radius:3px;width:0}
 #timeline-marker{position:absolute;top:-4px;width:12px;height:12px;background:#ddd;border-radius:50%;transform:translateX(-50%);left:0;z-index:3}
 #time-text{font-size:10px;color:#668866;margin-top:4px}
@@ -84,8 +88,8 @@ canvas{display:block}
 /* Per-card placement */
 #card-ap   {top:60px;  left:50%; --tx:-50%; transform:translateX(-50%)}
 #card-fuel {bottom:130px; left:50%; --tx:-50%; transform:translateX(-50%)}
-#card-yoke-L{top:50%; left:6%;  --ty:-50%; transform:translateY(-50%)}
-#card-yoke-R{top:50%; right:6%; --ty:-50%; transform:translateY(-50%)}
+#card-yoke-L{bottom:130px; left:30%;  --tx:-50%; transform:translateX(-50%)}
+#card-yoke-R{bottom:130px; right:30%; --tx:50%;  transform:translateX(50%)}
 #card-dual  {top:30%; left:50%; --tx:-50%; transform:translateX(-50%);font-family:'Courier New',monospace;font-size:13px;font-weight:bold;color:#ff3838;letter-spacing:2px;text-shadow:0 0 8px #ff0000,0 0 14px #ff0000,0 0 4px rgba(0,0,0,1);animation:pulseDual 1s ease-in-out infinite}
 @keyframes pulseDual{0%,100%{transform:translateX(-50%) scale(1);opacity:.85}50%{transform:translateX(-50%) scale(1.1);opacity:1}}
 /* Key-moment flashes */
@@ -114,7 +118,10 @@ canvas{display:block}
 .ap-light{fill:rgba(40,40,40,.5);stroke:rgba(120,160,120,.6);stroke-width:.8;transition:fill .25s,stroke .25s}
 .ap-light.warn{fill:#ff2828;stroke:#aa0808;stroke-width:1.2;animation:blink .55s infinite}
 .ap-lbl{fill:#fff;font-size:7px;font-family:'Courier New',monospace;font-weight:bold}
-/* Combined YOKE + COLUMN (737-style: wheel atop a tilting column) */
+/* YOKE + COLUMN — pilot POV (front view).
+   Push = wheel translates DOWN; Pull = wheel translates UP.
+   Roll = wheel rotates around its own centre. Column shaft not shown
+   (it's behind the dashboard from pilot's POV — small mount stub only). */
 .yk-body{fill:#9aa0a4;stroke:#444;stroke-width:.6}
 .yk-grip{fill:#1a1a1a;stroke:#000;stroke-width:.5}
 .yk-hub{fill:#1a1a1a;stroke:#666;stroke-width:.6}
@@ -125,11 +132,8 @@ canvas{display:block}
 .yk-active .yk-body{stroke:#ff8844;stroke-width:1.3}
 .yk-active .yk-hub{stroke:#ff8844;stroke-width:1.3}
 .yk-lbl{fill:rgba(220,220,220,.85);font-size:6px;font-family:'Courier New',monospace}
-.yk-angle{fill:#ffaa44;font-size:9px;font-weight:bold;font-family:'Courier New',monospace}
-.col-floor{stroke:rgba(180,180,180,.5);stroke-width:.5;stroke-dasharray:3 2}
-.col-pivot{fill:#888;stroke:#222;stroke-width:.5}
-.col-shaft{stroke:#9aa0a4;stroke-width:3;stroke-linecap:round;transition:stroke .25s}
-.col-shaft.active{stroke:#ff8844;stroke-width:3.4}
+.yk-mount{fill:#444;stroke:#222;stroke-width:.5}
+.yk-track{stroke:rgba(180,180,180,.35);stroke-width:.4;stroke-dasharray:2 2}
 /* Per-pilot force arrows (independent of mechanical position) */
 .yk-force{fill:none;stroke-width:2;stroke-linecap:round;opacity:0;transition:opacity .3s,stroke .3s}
 .yk-force.show{opacity:.95}
@@ -164,8 +168,16 @@ canvas{display:block}
   #p-alt{display:none}
   #p-events{display:none}
   #p-source{display:none}
-  #p-actions{display:none!important}
   .m-hide{display:none}
+  /* Mobile cockpit-action layout: simpler, vertical stack with key schematics */
+  #card-ap   {top:46px}
+  #card-ap svg {width:120px;height:38px}
+  #card-fuel {bottom:90px}
+  #card-fuel svg {width:170px;height:94px}
+  #card-yoke-L{bottom:230px;left:50%;transform:translateX(-50%)}
+  #card-yoke-L svg {width:108px;height:140px}
+  #card-yoke-R{display:none}                        /* hide F/O yoke on phone — Captain alone is enough; DUAL badge still conveys two-pilot input */
+  #card-dual {top:30%;font-size:11px;letter-spacing:1px}
 
   #p-controls{padding:6px 8px;bottom:4px}
   .btn{padding:3px 7px;font-size:9px}
@@ -271,18 +283,17 @@ canvas{display:block}
       <svg class="act-svg" width="200" height="110" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
         <!-- Side-elevation: lever pivots at base. RUN = angled up-forward (~-25°),
              CUTOFF = angled down-forward (~155°). Mushroom-head knob (cap+stem). -->
-        <!-- Switch 1 — ENG 1 -->
+        <!-- Switch 1 — ENG 1.  RUN = lever at upper-RIGHT (+20°),
+             CUTOFF = lever at lower-LEFT (+200°). Pilot lifts the cap up-right,
+             rotates clockwise through ~180°, and seats it into lower-left. -->
         <g id="fsw-1" transform="translate(60,80)">
           <text class="fsw-lbl-eng" x="0" y="-58" text-anchor="middle">ENG 1</text>
-          <text class="fsw-lbl fsw-lbl-run" x="-18" y="-44" text-anchor="middle">RUN ↗</text>
-          <text class="fsw-lbl fsw-lbl-cutoff" x="22" y="20" text-anchor="middle">↘ CUTOFF</text>
-          <!-- Detent fence (the lock the lever has to lift over) -->
+          <text class="fsw-lbl fsw-lbl-run"    x="22"  y="-46" text-anchor="middle">RUN ↗</text>
+          <text class="fsw-lbl fsw-lbl-cutoff" x="-22" y="22"  text-anchor="middle">↙ CUTOFF</text>
           <line class="fsw-detent" x1="-13" y1="0" x2="-5" y2="0"/>
           <line class="fsw-detent" x1="5" y1="0" x2="13" y2="0"/>
-          <!-- Switch body / base mount -->
           <rect class="fsw-base" x="-7" y="-3" width="14" height="9" rx="1"/>
-          <!-- Lever (rotates from -25° in RUN to +155° in CUTOFF, swing 180°) -->
-          <g id="fsw-1-tog" transform="rotate(-12)">
+          <g id="fsw-1-tog" transform="rotate(20)">
             <rect class="fsw-stem" x="-1.6" y="-15" width="3.2" height="15" rx=".7"/>
             <!-- Chunky mushroom cap: nearly spherical, slightly flattened -->
             <ellipse class="fsw-cap" cx="0" cy="-19" rx="6.5" ry="5.5"/>
@@ -307,15 +318,15 @@ canvas{display:block}
             <text x="27" y="-14" class="fsw-lbl" style="fill:#ffaa44">LIFT</text>
           </g>
         </g>
-        <!-- Switch 2 — ENG 2 -->
+        <!-- Switch 2 — ENG 2 (same RUN ↗ → ↙ CUTOFF motion) -->
         <g id="fsw-2" transform="translate(140,80)">
           <text class="fsw-lbl-eng" x="0" y="-58" text-anchor="middle">ENG 2</text>
-          <text class="fsw-lbl fsw-lbl-run" x="-18" y="-44" text-anchor="middle">RUN ↗</text>
-          <text class="fsw-lbl fsw-lbl-cutoff" x="22" y="20" text-anchor="middle">↘ CUTOFF</text>
+          <text class="fsw-lbl fsw-lbl-run"    x="22"  y="-46" text-anchor="middle">RUN ↗</text>
+          <text class="fsw-lbl fsw-lbl-cutoff" x="-22" y="22"  text-anchor="middle">↙ CUTOFF</text>
           <line class="fsw-detent" x1="-13" y1="0" x2="-5" y2="0"/>
           <line class="fsw-detent" x1="5" y1="0" x2="13" y2="0"/>
           <rect class="fsw-base" x="-7" y="-3" width="14" height="9" rx="1"/>
-          <g id="fsw-2-tog" transform="rotate(-12)">
+          <g id="fsw-2-tog" transform="rotate(20)">
             <rect class="fsw-stem" x="-1.6" y="-15" width="3.2" height="15" rx=".7"/>
             <ellipse class="fsw-cap" cx="0" cy="-19" rx="6.5" ry="5.5"/>
             <ellipse class="fsw-cap-hi" cx="0" cy="-22.5" rx="3" ry="1.2"/>
@@ -341,16 +352,13 @@ canvas{display:block}
     <!-- CTRL WHEEL · CAPTAIN — mid-left -->
     <div class="act-card" id="card-yoke-L">
       <div class="act-hdr">YOKE &middot; CAPT 左</div>
-      <svg class="act-svg" width="160" height="200" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg">
-        <!-- Floor reference + base pivot -->
-        <line class="col-floor" x1="20" y1="180" x2="140" y2="180"/>
-        <circle class="col-pivot" cx="80" cy="180" r="3"/>
-        <!-- Outer tilt group: rotates around base pivot when pilot pushes column -->
-        <g id="yoke-L-tilt" transform="rotate(0 80 180)">
-          <!-- Column shaft going up to yoke -->
-          <line id="yoke-L-shaft" class="col-shaft" x1="80" y1="180" x2="80" y2="80"/>
-          <!-- Yoke wheel — rotates per Whl Pos -->
-          <g id="yoke-L-rot" transform="translate(80,55) rotate(0)">
+      <svg class="act-svg" width="150" height="140" viewBox="0 0 150 140" xmlns="http://www.w3.org/2000/svg">
+        <!-- Vertical track (push/pull guide hint) -->
+        <line class="yk-track" x1="75" y1="22" x2="75" y2="118"/>
+        <!-- Tilt group: vertical translate represents push (+y) / pull (-y) -->
+        <g id="yoke-L-tilt" transform="translate(0,0)">
+          <!-- Yoke wheel (front view, rotates for roll) -->
+          <g id="yoke-L-rot" transform="translate(75,70) rotate(0)">
             <path class="yk-body" d="M -38 -3 Q -38 -24 -20 -24 L 20 -24 Q 38 -24 38 -3 L 38 1 L -38 1 Z"/>
             <rect class="yk-grip" x="-42" y="-3" width="8" height="32" rx="2.5"/>
             <rect class="yk-grip" x="34" y="-3" width="8" height="32" rx="2.5"/>
@@ -368,28 +376,24 @@ canvas{display:block}
             <rect class="yk-btn-ptt" x="35.5" y="20" width="5" height="2.6" rx=".6"/>
           </g>
         </g>
-        <!-- Force arrows (independent of mechanical position — Captain side) -->
-        <!-- Roll force arc: above wheel, direction reflects sign of force -->
-        <path id="yk-L-roll-arc" class="yk-force cap" d="M 110 50 Q 80 25 50 50"/>
-        <polygon id="yk-L-roll-tip" class="yk-force-tip" style="color:#22ddff" points="50,50 56,44 58,54"/>
-        <!-- Pitch force arrow: vertical near pivot, push (down) or pull (up) -->
-        <line id="yk-L-pitch-arc" class="yk-pitch-force cap" x1="115" y1="120" x2="115" y2="155"/>
-        <polygon id="yk-L-pitch-tip" class="yk-force-tip" style="color:#22ddff" points="115,155 110,148 120,148"/>
+        <!-- Captain force arrows (cyan) — independent of mechanical position -->
+        <path id="yk-L-roll-arc" class="yk-force cap" d="M 105 50 Q 75 25 45 50"/>
+        <polygon id="yk-L-roll-tip" class="yk-force-tip" style="color:#22ddff" points="45,50 51,44 53,54"/>
+        <line id="yk-L-pitch-arc" class="yk-pitch-force cap" x1="125" y1="55" x2="125" y2="92"/>
+        <polygon id="yk-L-pitch-tip" class="yk-force-tip" style="color:#22ddff" points="125,92 120,85 130,85"/>
         <!-- Side label -->
-        <text x="80" y="195" text-anchor="middle" class="yk-lbl" style="font-size:6.5px;fill:#22ddff">CAPT 机长</text>
+        <text x="75" y="135" text-anchor="middle" class="yk-lbl" style="font-size:6.5px;fill:#22ddff">CAPT 机长</text>
       </svg>
       <div class="act-status" id="yk-L-status" style="font-size:9px;color:#22ddff">—</div>
     </div>
 
-    <!-- CTRL YOKE+COLUMN · F/O — mid-right -->
+    <!-- CTRL YOKE · F/O — pilot POV mirror -->
     <div class="act-card" id="card-yoke-R">
-      <div class="act-hdr">YOKE+COLUMN &middot; F/O 副驾</div>
-      <svg class="act-svg" width="160" height="200" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg">
-        <line class="col-floor" x1="20" y1="180" x2="140" y2="180"/>
-        <circle class="col-pivot" cx="80" cy="180" r="3"/>
-        <g id="yoke-R-tilt" transform="rotate(0 80 180)">
-          <line id="yoke-R-shaft" class="col-shaft" x1="80" y1="180" x2="80" y2="80"/>
-          <g id="yoke-R-rot" transform="translate(80,55) rotate(0)">
+      <div class="act-hdr">YOKE &middot; F/O 副驾</div>
+      <svg class="act-svg" width="150" height="140" viewBox="0 0 150 140" xmlns="http://www.w3.org/2000/svg">
+        <line class="yk-track" x1="75" y1="22" x2="75" y2="118"/>
+        <g id="yoke-R-tilt" transform="translate(0,0)">
+          <g id="yoke-R-rot" transform="translate(75,70) rotate(0)">
             <path class="yk-body" d="M -38 -3 Q -38 -24 -20 -24 L 20 -24 Q 38 -24 38 -3 L 38 1 L -38 1 Z"/>
             <rect class="yk-grip" x="-42" y="-3" width="8" height="32" rx="2.5"/>
             <rect class="yk-grip" x="34" y="-3" width="8" height="32" rx="2.5"/>
@@ -407,12 +411,11 @@ canvas{display:block}
             <rect class="yk-btn-ptt" x="35.5" y="20" width="5" height="2.6" rx=".6"/>
           </g>
         </g>
-        <!-- Force arrows — F/O side (yellow), magnitude/direction independent of Captain -->
-        <path id="yk-R-roll-arc" class="yk-force fo" d="M 50 50 Q 80 25 110 50"/>
-        <polygon id="yk-R-roll-tip" class="yk-force-tip" style="color:#ffdd33" points="110,50 104,44 102,54"/>
-        <line id="yk-R-pitch-arc" class="yk-pitch-force fo" x1="45" y1="120" x2="45" y2="155"/>
-        <polygon id="yk-R-pitch-tip" class="yk-force-tip" style="color:#ffdd33" points="45,155 40,148 50,148"/>
-        <text x="80" y="195" text-anchor="middle" class="yk-lbl" style="font-size:6.5px;fill:#ffdd33">F/O 副驾</text>
+        <path id="yk-R-roll-arc" class="yk-force fo" d="M 45 50 Q 75 25 105 50"/>
+        <polygon id="yk-R-roll-tip" class="yk-force-tip" style="color:#ffdd33" points="105,50 99,44 97,54"/>
+        <line id="yk-R-pitch-arc" class="yk-pitch-force fo" x1="25" y1="55" x2="25" y2="92"/>
+        <polygon id="yk-R-pitch-tip" class="yk-force-tip" style="color:#ffdd33" points="25,92 20,85 30,85"/>
+        <text x="75" y="135" text-anchor="middle" class="yk-lbl" style="font-size:6.5px;fill:#ffdd33">F/O 副驾</text>
       </svg>
       <div class="act-status" id="yk-R-status" style="font-size:9px;color:#ffdd33">—</div>
     </div>
@@ -1019,9 +1022,11 @@ function updFuelCard(t){
   //   tF ∈ [0,0.4]: rapid pivot 0°→180° (toggle flips through the fence)
   //   tF ∈ [0.4,1]: skirt resettles in CUTOFF position
   //   tF > 1      : CUTOFF, locked (toggle at 180°, skirt seated)
-  // Lever rotation: RUN = -12° (slight forward tilt up), CUTOFF = +168°
-  // (slight forward tilt down). Total swing 180°. Must lift over detent fence.
-  let togDeg = -12;
+  // Lever rotation: RUN = +20° (head at upper-RIGHT),
+  // CUTOFF = +200° (head at lower-LEFT, mirror across pivot).
+  // Operation: 1) lift up-right, 2) rotate CW through ~180°,
+  // 3) seat in lower-left lock. Must clear detent fence first.
+  let togDeg = 20;
   let skirtY = 0;
   let handOn = false;
   let status, statusColor;
@@ -1031,25 +1036,25 @@ function updFuelCard(t){
     const p = (tF + 1);
     skirtY = -6 * p;
     handOn = true;
-    status = 'PILOT LIFTS · 抬保险'; statusColor = '#ffaa44';
+    status = 'PILOT LIFTS · 拔出'; statusColor = '#ffaa44';
   } else if (tF < 0.4) {
     const p = tF / 0.4;
-    togDeg = -12 + 180 * p;          // -12° → +168°
+    togDeg = 20 + 180 * p;          // +20° → +200° (CW swing)
     skirtY = -6 + 4 * p;
     handOn = true;
-    status = 'LEVER → CUTOFF · 切断'; statusColor = '#ff4444';
+    status = 'ROTATE → CUTOFF · 旋转切断'; statusColor = '#ff4444';
     if (!act.fuelFlashed) { flashEl(act.fuelSvg, 'flash-red'); act.fuelFlashed = true; }
   } else if (tF < 1) {
     const p = (tF - 0.4) / 0.6;
-    togDeg = 168;
+    togDeg = 200;
     skirtY = -2 + 2 * p;
     status = 'CUTOFF · LOCKED'; statusColor = '#ff5555';
   } else {
-    togDeg = 168;
+    togDeg = 200;
     status = 'ENG 1 + 2 · CUTOFF'; statusColor = '#ff5555';
   }
-  // Red X warning mark fades in once lever crosses the half-way point
-  const xOpacity = Math.max(0, Math.min(1, (togDeg - 70) / 50));
+  // Red X warning mark fades in once the lever crosses the halfway point
+  const xOpacity = Math.max(0, Math.min(1, (togDeg - 100) / 60));
   const x1 = document.getElementById('fsw-1-x');
   const x2 = document.getElementById('fsw-2-x');
   if (x1) x1.style.opacity = xOpacity.toFixed(2);
@@ -1098,11 +1103,13 @@ function _whlDeg(tF){
   else if (tF >= 20)            d = -30 * Math.max(0, 1 - (tF - 20) / 1.5);
   return d;
 }
-function _colTiltDeg(tF){
+function _colPushPx(tF){
+  // Pilot POV: push column forward = wheel translates DOWN. Pull = UP.
+  // Returns vertical translate in SVG px (positive = down = push).
   if (tF < 5) return 0;
   const p = Math.max(0, Math.min(1, (tF - 5) / 16));
   const ease = p * p * (3 - 2 * p);
-  return -14 * ease;  // negative = forward tilt
+  return 18 * ease;
 }
 // Per-pilot FORCE profiles. Strict to NTSB Fig 13 observable patterns:
 //   - Both Local + Foreign forces non-zero throughout the upset
@@ -1147,21 +1154,23 @@ function _foPitchForce(tF){
 // Force ARC width / arrow LENGTH scales with force magnitude — that's how the
 // Captain-vs-F/O magnitude difference becomes visible (the inconsistency).
 function _updYoke(card, tiltG, rotG, statusEl, rollArc, rollTip, pitchArc, pitchTip,
-                  tF, whlDeg, colDeg, rollForce, pitchForce, sideClass){
+                  tF, whlDeg, pushPx, rollForce, pitchForce, sideClass){
   const visible = tF >= 1 && tF <= 22;
   setCard(card, visible);
   if(!visible) return;
-  // Mechanical position (identical on both yokes — physically linked)
-  tiltG.setAttribute('transform', 'rotate(' + colDeg.toFixed(1) + ' 80 180)');
-  rotG.setAttribute('transform', 'translate(80,55) rotate(' + whlDeg.toFixed(1) + ')');
+  // Mechanical position (identical on both yokes — physically linked):
+  //   pushPx > 0 → wheel translates DOWN (push); < 0 → UP (pull)
+  //   whlDeg → wheel rotates around its own centre (roll)
+  tiltG.setAttribute('transform', 'translate(0, ' + pushPx.toFixed(1) + ')');
+  rotG.setAttribute('transform', 'translate(75,70) rotate(' + whlDeg.toFixed(1) + ')');
   rotG.classList.toggle('yk-active', tF >= 3);
   // Roll force arc — magnitude controls horizontal span (longer arc = more force)
   const absR = Math.abs(rollForce);
   const showR = absR > 0.05;
   if (showR) {
-    const halfSpan = 12 + 28 * absR;          // half-width of arc, 12..40 px
-    const cx = 80;
-    const archHeight = 20 + 8 * absR;
+    const halfSpan = 12 + 24 * absR;          // half-width of arc, 12..36 px
+    const cx = 75;
+    const archHeight = 18 + 7 * absR;
     const x1 = cx + (rollForce < 0 ? halfSpan : -halfSpan);
     const x2 = cx + (rollForce < 0 ? -halfSpan : halfSpan);
     rollArc.setAttribute('d', 'M ' + x1 + ' 50 Q ' + cx + ' ' + (50 - archHeight) + ' ' + x2 + ' 50');
@@ -1173,20 +1182,21 @@ function _updYoke(card, tiltG, rotG, statusEl, rollArc, rollTip, pitchArc, pitch
   }
   rollArc.classList.toggle('show', showR);
   rollTip.classList.toggle('show', showR);
-  // Pitch force — vertical arrow on the side; magnitude controls length
+  // Pitch force — vertical arrow on the OUTER side of the wheel.
+  // Pilot POV: push force points DOWN (wheel goes down); pull points UP.
   const absP = Math.abs(pitchForce);
   const showP = absP > 0.05;
   if (showP) {
-    const x = (sideClass === 'cap') ? 115 : 45;
-    const len = 12 + 28 * absP;               // arrow length, 12..40 px
-    const yMid = 138;
+    const x = (sideClass === 'cap') ? 125 : 25;
+    const len = 14 + 24 * absP;               // arrow length, 14..38 px
+    const yMid = 73;
     const yStart = yMid - len/2;
     const yEnd   = yMid + len/2;
-    if (pitchForce < 0) {                     // push down: arrow points down
+    if (pitchForce < 0) {                     // push: arrow points DOWN
       pitchArc.setAttribute('x1', x); pitchArc.setAttribute('y1', yStart);
       pitchArc.setAttribute('x2', x); pitchArc.setAttribute('y2', yEnd);
       pitchTip.setAttribute('points', x+','+yEnd+' '+(x-5)+','+(yEnd-7)+' '+(x+5)+','+(yEnd-7));
-    } else {                                  // pull up: arrow points up
+    } else {                                  // pull: arrow points UP
       pitchArc.setAttribute('x1', x); pitchArc.setAttribute('y1', yEnd);
       pitchArc.setAttribute('x2', x); pitchArc.setAttribute('y2', yStart);
       pitchTip.setAttribute('points', x+','+yStart+' '+(x-5)+','+(yStart+7)+' '+(x+5)+','+(yStart+7));
@@ -1204,15 +1214,15 @@ function _updYoke(card, tiltG, rotG, statusEl, rollArc, rollTip, pitchArc, pitch
 function updYokeCards(t){
   const tF = t - 268;
   const whlDeg = _whlDeg(tF);
-  const colDeg = _colTiltDeg(tF);
+  const pushPx = _colPushPx(tF);
   const cR = _capRollForce(tF), cP = _capPitchForce(tF);
   const fR = _foRollForce(tF),  fP = _foPitchForce(tF);
   _updYoke(act.yokeLCard, act.yokeLTilt, act.yokeLRot, act.yokeLStatus,
            act.ykLRollArc, act.ykLRollTip, act.ykLPitchArc, act.ykLPitchTip,
-           tF, whlDeg, colDeg, cR, cP, 'cap');
+           tF, whlDeg, pushPx, cR, cP, 'cap');
   _updYoke(act.yokeRCard, act.yokeRTilt, act.yokeRRot, act.yokeRStatus,
            act.ykRRollArc, act.ykRRollTip, act.ykRPitchArc, act.ykRPitchTip,
-           tF, whlDeg, colDeg, fR, fP, 'fo');
+           tF, whlDeg, pushPx, fR, fP, 'fo');
   // Central badge: DUAL INPUT only (no fabricated FIGHTING upgrade — opposing
   // direction moments are not clearly visible in the public NTSB figure).
   setCard(act.dualCard, tF >= 3 && tF <= 22);
