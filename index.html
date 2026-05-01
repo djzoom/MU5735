@@ -142,25 +142,30 @@ canvas{display:block}
 .ap-light{fill:rgba(40,40,40,.5);stroke:rgba(120,160,120,.6);stroke-width:.8;transition:fill .25s,stroke .25s}
 .ap-light.warn{fill:#ff2828;stroke:#aa0808;stroke-width:1.2;animation:blink .55s infinite}
 .ap-lbl{fill:#fff;font-size:7px;font-family:'Courier New',monospace;font-weight:bold}
-/* YOKE — true 737 "horns" geometry (pilot POV / front view):
-   Two curved arms sweep outward from a central hub up to horizontal grip
-   blocks at the corners; central column-mount carries the badge.
-   Push = whole yoke translates DOWN; Pull = UP; Roll = rotate around hub. */
-.yk-arm{fill:none;stroke:#0a0a0a;stroke-width:8;stroke-linecap:round}
-.yk-grip{fill:#0a0a0a;stroke:#222;stroke-width:.5}
-.yk-grip-hi{fill:rgba(255,255,255,.06);stroke:none}
-.yk-mount{fill:#141414;stroke:#333;stroke-width:.5}
-.yk-hub{fill:#3a3a3a;stroke:#1a1a1a;stroke-width:.5}
-.yk-hub-screw{fill:#1a1a1a}
-.yk-logo{fill:#3aa9d8;font-size:4.5px;font-family:'Arial',sans-serif;font-weight:bold;letter-spacing:.4px}
-.yk-btn-ap{fill:#dd1414;stroke:#660606;stroke-width:.3}
-.yk-btn-trim{fill:#666;stroke:#222;stroke-width:.3}
-.yk-btn-ptt{fill:#3366aa;stroke:#112244;stroke-width:.3}
-.yk-active{filter:drop-shadow(0 0 4px rgba(255,136,68,.55))}
-.yk-active .yk-arm{stroke:#1d1d1d}
-.yk-active .yk-grip,.yk-active .yk-mount,.yk-active .yk-hub{stroke:#ff8844;stroke-width:1.2}
-.yk-lbl{fill:rgba(220,220,220,.85);font-size:6px;font-family:'Courier New',monospace}
-.yk-track{stroke:rgba(180,180,180,.3);stroke-width:.4;stroke-dasharray:2 2}
+/* YOKE — Boeing 737-800 control yoke, photorealistic-ish front view:
+   Central tall rectangular HUB (column mount + badge plate),
+   two ergonomic curved arms swooping outward and slightly upward to
+   horizontal grip cylinders at the corners, integrated buttons.
+   Matte-black painted aluminium feel via SVG gradients.
+   Push = wheel translates DOWN; Pull = UP; Roll = rotate around hub. */
+.yk-arm{fill:none;stroke:url(#ykArmGrad);stroke-width:9;stroke-linecap:round}
+.yk-mount{fill:url(#ykMatteGrad);stroke:#1a1a1a;stroke-width:.7}
+.yk-badge{fill:#0a0a0a;stroke:#1a1a1a;stroke-width:.4}
+.yk-grip{fill:url(#ykGripGrad);stroke:#080808;stroke-width:.6}
+.yk-grip-hi{fill:rgba(255,255,255,.12);stroke:none}
+.yk-grip-end{fill:#1a1a1a;stroke:#080808;stroke-width:.4}    /* outer cap */
+.yk-logo{fill:#3aa9d8;font-size:9px;font-family:'Arial Black',sans-serif;font-weight:bold;letter-spacing:0}
+.yk-logo-sub{fill:#3aa9d8;font-size:3.2px;font-family:'Arial',sans-serif;letter-spacing:.4px}
+.yk-btn-ap{fill:#e62020;stroke:#5a0606;stroke-width:.4}
+.yk-btn-ap-hi{fill:rgba(255,200,200,.5);stroke:none}
+.yk-btn-trim{fill:#777;stroke:#222;stroke-width:.3}
+.yk-btn-ptt{fill:#3a6da8;stroke:#112244;stroke-width:.3}
+.yk-active{filter:drop-shadow(0 0 5px rgba(255,140,80,.7))}
+.yk-active .yk-grip,.yk-active .yk-mount{stroke:#ff8844;stroke-width:1.3}
+.yk-lbl{fill:rgba(230,230,230,.92);font-size:6px;font-family:'Courier New',monospace;font-weight:bold}
+.yk-track{stroke:rgba(180,180,180,.4);stroke-width:.6;stroke-dasharray:2 2}
+.yk-neutral{stroke:rgba(160,255,180,.7);stroke-width:1.4;stroke-linecap:round}
+.kbd{display:inline-block;padding:1px 6px;background:rgba(0,0,0,.6);border:1px solid rgba(0,255,136,.6);border-radius:3px;color:#cdf2d6;font:bold 9px 'Courier New',monospace;margin:0 2px;text-shadow:none}
 /* Per-pilot force arrows (independent of mechanical position) */
 .yk-force{fill:none;stroke-width:2;stroke-linecap:round;opacity:0;transition:opacity .3s,stroke .3s}
 .yk-force.show{opacity:.95}
@@ -223,6 +228,25 @@ canvas{display:block}
 <canvas id="canvas"></canvas>
 <div id="loading">Loading satellite imagery &amp; aircraft model...</div>
 <div id="hud" style="display:none">
+  <!-- Shared SVG gradient defs (yoke matte-black aluminium look) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="ykMatteGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2c2c2c"/>
+        <stop offset="45%" stop-color="#181818"/>
+        <stop offset="100%" stop-color="#070707"/>
+      </linearGradient>
+      <linearGradient id="ykArmGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2a2a2a"/>
+        <stop offset="100%" stop-color="#080808"/>
+      </linearGradient>
+      <linearGradient id="ykGripGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2e2e2e"/>
+        <stop offset="55%" stop-color="#0d0d0d"/>
+        <stop offset="100%" stop-color="#000"/>
+      </linearGradient>
+    </defs>
+  </svg>
   <div id="p-title" class="panel">
     <div class="warn-line">TRAJECTORY: ADS-B MEASURED 航迹实测 &ensp;|&ensp; ATTITUDE: ESTIMATED 姿态估算 &ensp;|&ensp; FDR: PARTIAL 部分披露</div>
     <div class="main">CHINA EASTERN AIRLINES FLIGHT MU5735</div>
@@ -267,7 +291,7 @@ canvas{display:block}
       <button class="btn cam-btn" id="cam-cockpit">FPV</button>
     </div>
     <div id="timeline"><div id="timeline-fill"></div><div id="timeline-marker"></div></div>
-    <div id="time-text"><span id="v-elapsed">00:00.000</span> / <span id="v-total">--:--</span> &ensp;|&ensp; <span style="color:#668866">CST 北京</span> <span class="val" id="v-cst-tl" style="color:#c0ffc0;font-weight:bold">14:20:38.000</span><span class="m-hide"> &ensp;|&ensp; Orbit: drag &ensp; Zoom: scroll &ensp; Seek: click bar</span></div>
+    <div id="time-text"><span id="v-elapsed">00:00.000</span> / <span id="v-total">--:--</span> &ensp;|&ensp; <span style="color:#a8d4a8">CST 北京</span> <span class="val" id="v-cst-tl" style="color:#ffffff;font-weight:bold">14:20:38.000</span><span class="m-hide"> &ensp;|&ensp; <kbd class="kbd">Space</kbd> Play/Pause 播放/暂停 &ensp; Drag 拖动: Orbit 旋转 &ensp; Scroll 滚轮: Zoom 缩放</span></div>
   </div>
   <div id="p-events" class="panel">
     <div class="ehdr">FDR / ADS-B EVENTS 事件时间线</div>
@@ -379,44 +403,51 @@ canvas{display:block}
     <!-- CTRL WHEEL · CAPTAIN — mid-left -->
     <div class="act-card" id="card-yoke-L">
       <div class="act-hdr">YOKE &middot; CAPT 左</div>
-      <svg class="act-svg" width="150" height="140" viewBox="0 0 150 140" xmlns="http://www.w3.org/2000/svg">
-        <!-- Vertical track (push/pull guide hint) -->
-        <line class="yk-track" x1="75" y1="22" x2="75" y2="118"/>
+      <svg class="act-svg" width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+        <!-- Vertical guide track + neutral-position marker (rest position) -->
+        <line class="yk-track" x1="80" y1="20" x2="80" y2="140"/>
+        <line class="yk-neutral" x1="68" y1="80" x2="92" y2="80"/>
+        <text x="98" y="83" class="yk-lbl" style="font-size:5px;fill:rgba(180,200,180,.7)">NEUTRAL</text>
         <!-- Tilt group: vertical translate represents push (+y) / pull (-y) -->
         <g id="yoke-L-tilt" transform="translate(0,0)">
-          <!-- Yoke wheel (front view, rotates for roll) -->
-          <g id="yoke-L-rot" transform="translate(75,70) rotate(0)">
-            <!-- Two curved arms from hub up-and-out to the grips -->
-            <path class="yk-arm" d="M -8 0 Q -22 -3 -33 -16"/>
-            <path class="yk-arm" d="M  8 0 Q  22 -3  33 -16"/>
-            <!-- Central column mount (oblong with badge) -->
-            <rect class="yk-mount" x="-9" y="-3" width="18" height="22" rx="3"/>
-            <text class="yk-logo" x="0" y="9" text-anchor="middle">B737</text>
-            <!-- Hub at rotation centre -->
-            <circle class="yk-hub" r="5.5"/>
-            <circle class="yk-hub-screw" r="1.4"/>
-            <!-- Grip blocks at arm ends (horizontal, slightly tilted) -->
-            <rect class="yk-grip" x="-44" y="-24" width="16" height="12" rx="3"/>
-            <rect class="yk-grip-hi" x="-43" y="-23.4" width="14" height="2" rx="1"/>
-            <rect class="yk-grip" x="28" y="-24" width="16" height="12" rx="3"/>
-            <rect class="yk-grip-hi" x="29" y="-23.4" width="14" height="2" rx="1"/>
-            <!-- Left grip controls: red AP-disconnect (front) + trim switch (top) -->
-            <circle class="yk-btn-ap" cx="-32" cy="-15" r="1.7"/>
-            <rect class="yk-btn-trim" x="-42" y="-27" width="11" height="2.5" rx=".5"/>
-            <rect class="yk-btn-ptt" x="-43" y="-12.5" width="3" height="2" rx=".3"/>
-            <!-- Right grip controls (mirror) -->
-            <circle class="yk-btn-ap" cx="32" cy="-15" r="1.7"/>
-            <rect class="yk-btn-trim" x="31" y="-27" width="11" height="2.5" rx=".5"/>
-            <rect class="yk-btn-ptt" x="40" y="-12.5" width="3" height="2" rx=".3"/>
+          <!-- Yoke (rotates for roll around its hub centre) -->
+          <g id="yoke-L-rot" transform="translate(80,80) rotate(0)">
+            <!-- Two ergonomic curved arms emerging from hub upper sides -->
+            <path class="yk-arm" d="M -10 -8 Q -25 -10 -34 -16"/>
+            <path class="yk-arm" d="M  10 -8 Q  25 -10  34 -16"/>
+            <!-- Central RECTANGULAR HUB / column mount + badge plate -->
+            <rect class="yk-mount" x="-10" y="-15" width="20" height="32" rx="3.5"/>
+            <rect class="yk-badge" x="-8" y="-12" width="16" height="22" rx="2"/>
+            <text class="yk-logo" x="0" y="-2" text-anchor="middle">Q</text>
+            <text class="yk-logo-sub" x="0" y="6" text-anchor="middle">B737</text>
+            <!-- Grip blocks at arm ends (horizontal cylinder shape) -->
+            <rect class="yk-grip" x="-44" y="-22" width="14" height="11" rx="3"/>
+            <rect class="yk-grip-hi" x="-43" y="-21.5" width="12" height="2.2" rx=".8"/>
+            <rect class="yk-grip-end" x="-46" y="-20" width="3" height="7" rx="1"/>
+            <rect class="yk-grip" x="30" y="-22" width="14" height="11" rx="3"/>
+            <rect class="yk-grip-hi" x="31" y="-21.5" width="12" height="2.2" rx=".8"/>
+            <rect class="yk-grip-end" x="43" y="-20" width="3" height="7" rx="1"/>
+            <!-- Grip controls per real cockpit layout: -->
+            <!--  red AP disconnect (front face)  -->
+            <circle class="yk-btn-ap" cx="-32" cy="-13" r="1.8"/>
+            <circle class="yk-btn-ap-hi" cx="-32.5" cy="-13.5" r=".6"/>
+            <circle class="yk-btn-ap" cx="32" cy="-13" r="1.8"/>
+            <circle class="yk-btn-ap-hi" cx="31.5" cy="-13.5" r=".6"/>
+            <!--  trim switch (top edge) -->
+            <rect class="yk-btn-trim" x="-42" y="-25" width="11" height="2.4" rx=".5"/>
+            <rect class="yk-btn-trim" x="31" y="-25" width="11" height="2.4" rx=".5"/>
+            <!--  PTT (inner-side bump) -->
+            <rect class="yk-btn-ptt" x="-30.5" y="-19" width="3" height="2" rx=".3"/>
+            <rect class="yk-btn-ptt" x="27.5" y="-19" width="3" height="2" rx=".3"/>
           </g>
         </g>
-        <!-- Captain force arrows (cyan) — independent of mechanical position -->
-        <path id="yk-L-roll-arc" class="yk-force cap" d="M 105 50 Q 75 25 45 50"/>
-        <polygon id="yk-L-roll-tip" class="yk-force-tip" style="color:#22ddff" points="45,50 51,44 53,54"/>
-        <line id="yk-L-pitch-arc" class="yk-pitch-force cap" x1="125" y1="55" x2="125" y2="92"/>
-        <polygon id="yk-L-pitch-tip" class="yk-force-tip" style="color:#22ddff" points="125,92 120,85 130,85"/>
-        <!-- Side label -->
-        <text x="75" y="135" text-anchor="middle" class="yk-lbl" style="font-size:6.5px;fill:#22ddff">CAPT 机长</text>
+        <!-- Captain force arrows (cyan) — translate with wheel via tilt group -->
+        <path id="yk-L-roll-arc" class="yk-force cap" d="M 110 60 Q 80 35 50 60"/>
+        <polygon id="yk-L-roll-tip" class="yk-force-tip" style="color:#22ddff" points="50,60 56,54 58,64"/>
+        <line id="yk-L-pitch-arc" class="yk-pitch-force cap" x1="130" y1="65" x2="130" y2="100"/>
+        <polygon id="yk-L-pitch-tip" class="yk-force-tip" style="color:#22ddff" points="130,100 125,93 135,93"/>
+        <!-- Push displacement readout (px) — emphasises distance from neutral -->
+        <text x="80" y="155" text-anchor="middle" class="yk-lbl" style="font-size:6.5px;fill:#22ddff">CAPT 机长</text>
       </svg>
       <div class="act-status" id="yk-L-status" style="font-size:9px;color:#22ddff">—</div>
     </div>
@@ -424,33 +455,39 @@ canvas{display:block}
     <!-- CTRL YOKE · F/O — pilot POV mirror -->
     <div class="act-card" id="card-yoke-R">
       <div class="act-hdr">YOKE &middot; F/O 副驾</div>
-      <svg class="act-svg" width="150" height="140" viewBox="0 0 150 140" xmlns="http://www.w3.org/2000/svg">
-        <line class="yk-track" x1="75" y1="22" x2="75" y2="118"/>
+      <svg class="act-svg" width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+        <line class="yk-track" x1="80" y1="20" x2="80" y2="140"/>
+        <line class="yk-neutral" x1="68" y1="80" x2="92" y2="80"/>
+        <text x="98" y="83" class="yk-lbl" style="font-size:5px;fill:rgba(180,200,180,.7)">NEUTRAL</text>
         <g id="yoke-R-tilt" transform="translate(0,0)">
-          <g id="yoke-R-rot" transform="translate(75,70) rotate(0)">
-            <path class="yk-arm" d="M -8 0 Q -22 -3 -33 -16"/>
-            <path class="yk-arm" d="M  8 0 Q  22 -3  33 -16"/>
-            <rect class="yk-mount" x="-9" y="-3" width="18" height="22" rx="3"/>
-            <text class="yk-logo" x="0" y="9" text-anchor="middle">B737</text>
-            <circle class="yk-hub" r="5.5"/>
-            <circle class="yk-hub-screw" r="1.4"/>
-            <rect class="yk-grip" x="-44" y="-24" width="16" height="12" rx="3"/>
-            <rect class="yk-grip-hi" x="-43" y="-23.4" width="14" height="2" rx="1"/>
-            <rect class="yk-grip" x="28" y="-24" width="16" height="12" rx="3"/>
-            <rect class="yk-grip-hi" x="29" y="-23.4" width="14" height="2" rx="1"/>
-            <circle class="yk-btn-ap" cx="-32" cy="-15" r="1.7"/>
-            <rect class="yk-btn-trim" x="-42" y="-27" width="11" height="2.5" rx=".5"/>
-            <rect class="yk-btn-ptt" x="-43" y="-12.5" width="3" height="2" rx=".3"/>
-            <circle class="yk-btn-ap" cx="32" cy="-15" r="1.7"/>
-            <rect class="yk-btn-trim" x="31" y="-27" width="11" height="2.5" rx=".5"/>
-            <rect class="yk-btn-ptt" x="40" y="-12.5" width="3" height="2" rx=".3"/>
+          <g id="yoke-R-rot" transform="translate(80,80) rotate(0)">
+            <path class="yk-arm" d="M -10 -8 Q -25 -10 -34 -16"/>
+            <path class="yk-arm" d="M  10 -8 Q  25 -10  34 -16"/>
+            <rect class="yk-mount" x="-10" y="-15" width="20" height="32" rx="3.5"/>
+            <rect class="yk-badge" x="-8" y="-12" width="16" height="22" rx="2"/>
+            <text class="yk-logo" x="0" y="-2" text-anchor="middle">Q</text>
+            <text class="yk-logo-sub" x="0" y="6" text-anchor="middle">B737</text>
+            <rect class="yk-grip" x="-44" y="-22" width="14" height="11" rx="3"/>
+            <rect class="yk-grip-hi" x="-43" y="-21.5" width="12" height="2.2" rx=".8"/>
+            <rect class="yk-grip-end" x="-46" y="-20" width="3" height="7" rx="1"/>
+            <rect class="yk-grip" x="30" y="-22" width="14" height="11" rx="3"/>
+            <rect class="yk-grip-hi" x="31" y="-21.5" width="12" height="2.2" rx=".8"/>
+            <rect class="yk-grip-end" x="43" y="-20" width="3" height="7" rx="1"/>
+            <circle class="yk-btn-ap" cx="-32" cy="-13" r="1.8"/>
+            <circle class="yk-btn-ap-hi" cx="-32.5" cy="-13.5" r=".6"/>
+            <circle class="yk-btn-ap" cx="32" cy="-13" r="1.8"/>
+            <circle class="yk-btn-ap-hi" cx="31.5" cy="-13.5" r=".6"/>
+            <rect class="yk-btn-trim" x="-42" y="-25" width="11" height="2.4" rx=".5"/>
+            <rect class="yk-btn-trim" x="31" y="-25" width="11" height="2.4" rx=".5"/>
+            <rect class="yk-btn-ptt" x="-30.5" y="-19" width="3" height="2" rx=".3"/>
+            <rect class="yk-btn-ptt" x="27.5" y="-19" width="3" height="2" rx=".3"/>
           </g>
         </g>
-        <path id="yk-R-roll-arc" class="yk-force fo" d="M 45 50 Q 75 25 105 50"/>
-        <polygon id="yk-R-roll-tip" class="yk-force-tip" style="color:#ffdd33" points="105,50 99,44 97,54"/>
-        <line id="yk-R-pitch-arc" class="yk-pitch-force fo" x1="25" y1="55" x2="25" y2="92"/>
-        <polygon id="yk-R-pitch-tip" class="yk-force-tip" style="color:#ffdd33" points="25,92 20,85 30,85"/>
-        <text x="75" y="135" text-anchor="middle" class="yk-lbl" style="font-size:6.5px;fill:#ffdd33">F/O 副驾</text>
+        <path id="yk-R-roll-arc" class="yk-force fo" d="M 50 60 Q 80 35 110 60"/>
+        <polygon id="yk-R-roll-tip" class="yk-force-tip" style="color:#ffdd33" points="110,60 104,54 102,64"/>
+        <line id="yk-R-pitch-arc" class="yk-pitch-force fo" x1="30" y1="65" x2="30" y2="100"/>
+        <polygon id="yk-R-pitch-tip" class="yk-force-tip" style="color:#ffdd33" points="30,100 25,93 35,93"/>
+        <text x="80" y="155" text-anchor="middle" class="yk-lbl" style="font-size:6.5px;fill:#ffdd33">F/O 副驾</text>
       </svg>
       <div class="act-status" id="yk-R-status" style="font-size:9px;color:#ffdd33">—</div>
     </div>
@@ -1201,22 +1238,23 @@ function _updYoke(card, tiltG, rotG, statusEl, rollArc, rollTip, pitchArc, pitch
   //   pushPx > 0 → wheel translates DOWN (push); < 0 → UP (pull)
   //   whlDeg → wheel rotates around its own centre (roll)
   tiltG.setAttribute('transform', 'translate(0, ' + pushPx.toFixed(1) + ')');
-  rotG.setAttribute('transform', 'translate(75,70) rotate(' + whlDeg.toFixed(1) + ')');
+  rotG.setAttribute('transform', 'translate(80,80) rotate(' + whlDeg.toFixed(1) + ')');
   rotG.classList.toggle('yk-active', tF >= 3);
   // Roll force arc — magnitude controls horizontal span (longer arc = more force)
   const absR = Math.abs(rollForce);
   const showR = absR > 0.05;
   if (showR) {
-    const halfSpan = 12 + 24 * absR;          // half-width of arc, 12..36 px
-    const cx = 75;
+    const halfSpan = 12 + 24 * absR;
+    const cx = 80;
     const archHeight = 18 + 7 * absR;
+    const yArc = 60;
     const x1 = cx + (rollForce < 0 ? halfSpan : -halfSpan);
     const x2 = cx + (rollForce < 0 ? -halfSpan : halfSpan);
-    rollArc.setAttribute('d', 'M ' + x1 + ' 50 Q ' + cx + ' ' + (50 - archHeight) + ' ' + x2 + ' 50');
+    rollArc.setAttribute('d', 'M ' + x1 + ' ' + yArc + ' Q ' + cx + ' ' + (yArc - archHeight) + ' ' + x2 + ' ' + yArc);
     if (rollForce < 0) {
-      rollTip.setAttribute('points', x2+',50 '+(x2+6)+',44 '+(x2+8)+',54');
+      rollTip.setAttribute('points', x2+','+yArc+' '+(x2+6)+','+(yArc-6)+' '+(x2+8)+','+(yArc+4));
     } else {
-      rollTip.setAttribute('points', x2+',50 '+(x2-6)+',44 '+(x2-8)+',54');
+      rollTip.setAttribute('points', x2+','+yArc+' '+(x2-6)+','+(yArc-6)+' '+(x2-8)+','+(yArc+4));
     }
   }
   rollArc.classList.toggle('show', showR);
@@ -1226,9 +1264,9 @@ function _updYoke(card, tiltG, rotG, statusEl, rollArc, rollTip, pitchArc, pitch
   const absP = Math.abs(pitchForce);
   const showP = absP > 0.05;
   if (showP) {
-    const x = (sideClass === 'cap') ? 125 : 25;
-    const len = 14 + 24 * absP;               // arrow length, 14..38 px
-    const yMid = 73;
+    const x = (sideClass === 'cap') ? 130 : 30;
+    const len = 14 + 24 * absP;
+    const yMid = 82;
     const yStart = yMid - len/2;
     const yEnd   = yMid + len/2;
     if (pitchForce < 0) {                     // push: arrow points DOWN
@@ -1496,6 +1534,22 @@ $('src-toggle').onclick=()=>{
 actInit();
 
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);});
+
+// Spacebar shortcut: toggle play / pause (also restart from descent if at end)
+addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  e.preventDefault();
+  if (S.t >= DUR) {
+    S.t = START_T; reset();
+    const d = interp(START_T); prevAircraftPos.copy(d.pos);
+    const hr0 = d.hdg * D2R;
+    cam.position.copy(d.pos).add(new THREE.Vector3(-Math.sin(hr0)*7, 2.5, Math.cos(hr0)*7));
+    oc.target.copy(d.pos);
+    S.playing = true;
+  } else {
+    S.playing = !S.playing;
+  }
+});
 
 /* ================================================================
    INIT
