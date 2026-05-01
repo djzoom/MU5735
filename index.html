@@ -70,16 +70,31 @@ canvas{display:block}
 .warning{color:#ff4444!important;animation:blink .5s infinite}
 @keyframes blink{50%{opacity:.3}}
 
-/* Cockpit ACTIONS strip — event-driven (auto show/hide per FDR data) */
-#p-actions{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);display:flex;gap:10px;align-items:flex-end;justify-content:center;flex-wrap:wrap;max-width:94vw;pointer-events:none}
-.act-card{display:none;background:rgba(0,0,0,.55);border:1px solid rgba(255,170,80,.35);border-radius:5px;padding:6px 10px;backdrop-filter:blur(6px)}
-.act-card.show{display:block;animation:cardFadeIn .35s ease}
-@keyframes cardFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.act-hdr{font-size:9px;color:rgba(255,170,80,.75);letter-spacing:1.2px;text-align:center;margin-bottom:3px}
-.act-status{font-size:8.5px;color:rgba(255,200,140,.85);text-align:center;margin-top:3px;letter-spacing:.5px;font-weight:bold}
-.act-svg{display:block}
+/* Cockpit ACTIONS — event-driven floaters distributed around the screen.
+   No container backgrounds — each part lives in its own spatial location
+   matching its real cockpit position (AP at top, yokes at sides, fuel
+   at bottom-center pedestal). */
+#p-actions{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.act-card{position:absolute;display:none;text-align:center;pointer-events:none}
+.act-card.show{display:block;animation:cardFadeIn .4s ease}
+@keyframes cardFadeIn{from{opacity:0;transform:scale(.9) translate(var(--tx,0),var(--ty,0))}to{opacity:1;transform:scale(1) translate(var(--tx,0),var(--ty,0))}}
+.act-hdr{font-size:8.5px;color:rgba(255,170,80,.85);letter-spacing:1.2px;margin-bottom:2px;text-shadow:0 0 4px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,1)}
+.act-status{font-size:9px;color:#ffe0b0;margin-top:4px;letter-spacing:.5px;font-weight:bold;text-shadow:0 0 5px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,1)}
+.act-svg{display:block;margin:0 auto;filter:drop-shadow(0 0 4px rgba(0,0,0,.85))}
+/* Per-card placement */
+#card-ap   {top:60px;  left:50%; --tx:-50%; transform:translateX(-50%)}
+#card-fuel {bottom:130px; left:50%; --tx:-50%; transform:translateX(-50%)}
+#card-yoke-L{top:50%; left:8%;  --ty:-50%; transform:translateY(-50%)}
+#card-yoke-R{top:50%; right:8%; --ty:-50%; transform:translateY(-50%)}
+#card-column{bottom:240px; left:50%; --tx:-50%; transform:translateX(-50%)}
+#card-dual  {top:32%; left:50%; --tx:-50%; transform:translateX(-50%);font-family:'Courier New',monospace;font-size:13px;font-weight:bold;color:#ff3838;letter-spacing:2px;text-shadow:0 0 8px #ff0000,0 0 14px #ff0000,0 0 4px rgba(0,0,0,1);animation:pulseDual 1s ease-in-out infinite}
+@keyframes pulseDual{0%,100%{transform:translateX(-50%) scale(1);opacity:.85}50%{transform:translateX(-50%) scale(1.1);opacity:1}}
+/* Key-moment flashes */
+@keyframes flashRed{0%{filter:drop-shadow(0 0 0 transparent)}30%{filter:drop-shadow(0 0 18px #ff3333) drop-shadow(0 0 6px rgba(0,0,0,.85))}100%{filter:drop-shadow(0 0 4px rgba(0,0,0,.85))}}
+.flash-red{animation:flashRed .6s ease}
+@keyframes flashAmber{0%{filter:drop-shadow(0 0 0 transparent)}30%{filter:drop-shadow(0 0 14px #ffaa44) drop-shadow(0 0 4px rgba(0,0,0,.85))}100%{filter:drop-shadow(0 0 4px rgba(0,0,0,.85))}}
+.flash-amber{animation:flashAmber .6s ease}
 /* Step A — Fuel switch part palette */
-.fsw-pedestal{fill:rgba(30,30,30,.85);stroke:rgba(120,120,120,.5);stroke-width:.5}
 .fsw-base{fill:#1a1a1a;stroke:#444;stroke-width:.6}
 .fsw-stem{fill:#999;stroke:#555;stroke-width:.4}
 .fsw-knob{fill:#0a0a0a;stroke:#555;stroke-width:.5}
@@ -87,42 +102,37 @@ canvas{display:block}
 .fsw-skirt-run{fill:#882222;stroke:#441010;stroke-width:.4}
 .fsw-skirt-active{fill:#ee5544;stroke:#882211;stroke-width:.6}
 .fsw-detent{stroke:#777;stroke-width:1.4;stroke-linecap:round}
-.fsw-lbl{fill:rgba(180,180,180,.7);font-size:5.5px;font-family:'Courier New',monospace}
+.fsw-lbl{fill:rgba(220,220,220,.85);font-size:5.5px;font-family:'Courier New',monospace;text-shadow:0 0 3px rgba(0,0,0,1)}
 .fsw-lbl-run{fill:#55cc66}
 .fsw-lbl-cutoff{fill:#ff5544}
-.fsw-lbl-eng{fill:rgba(220,220,220,.85);font-size:6.5px;font-weight:bold;font-family:'Courier New',monospace}
-.fsw-hand{fill:none;stroke:#ffaa44;stroke-width:1.4;stroke-linecap:round;opacity:0;transition:opacity .25s}
+.fsw-lbl-eng{fill:#fff;font-size:7px;font-weight:bold;font-family:'Courier New',monospace}
+.fsw-hand{fill:none;stroke:#ffaa44;stroke-width:1.6;stroke-linecap:round;opacity:0;transition:opacity .25s}
 .fsw-hand.show{opacity:1}
 /* Step C — AP warning indicators */
-.ap-glare{fill:rgba(20,20,20,.85);stroke:rgba(120,120,120,.5);stroke-width:.5}
-.ap-light{fill:rgba(60,60,60,.6);stroke:rgba(80,150,80,.5);stroke-width:.6;transition:fill .25s,stroke .25s}
-.ap-light.warn{fill:#ff3333;stroke:#aa1111;stroke-width:.9;animation:blink .55s infinite}
-.ap-lbl{fill:rgba(220,220,220,.85);font-size:6.5px;font-family:'Courier New',monospace;font-weight:bold}
+.ap-light{fill:rgba(40,40,40,.5);stroke:rgba(120,160,120,.6);stroke-width:.8;transition:fill .25s,stroke .25s}
+.ap-light.warn{fill:#ff2828;stroke:#aa0808;stroke-width:1.2;animation:blink .55s infinite}
+.ap-lbl{fill:#fff;font-size:7px;font-family:'Courier New',monospace;font-weight:bold}
 /* Step B — Yoke / control wheel (737 U-shape) */
-.yk-bg{fill:rgba(30,30,30,.7);stroke:rgba(120,120,120,.4);stroke-width:.5}
-.yk-body{fill:#9aa0a4;stroke:#555;stroke-width:.6}
-.yk-grip{fill:#222;stroke:#111;stroke-width:.5}
+.yk-body{fill:#9aa0a4;stroke:#444;stroke-width:.6}
+.yk-grip{fill:#1a1a1a;stroke:#000;stroke-width:.5}
 .yk-hub{fill:#1a1a1a;stroke:#666;stroke-width:.6}
 .yk-spoke{stroke:#555;stroke-width:1.6;stroke-linecap:round}
 .yk-btn-ap{fill:#cc1818;stroke:#660808;stroke-width:.3}
 .yk-btn-trim{fill:#666;stroke:#222;stroke-width:.3}
 .yk-btn-ptt{fill:#3366aa;stroke:#112244;stroke-width:.3}
-.yk-active .yk-body{stroke:#ff8844;stroke-width:1.4}
-.yk-active .yk-hub{stroke:#ff8844;stroke-width:1.4}
-.yk-lbl{fill:rgba(200,200,200,.65);font-size:6px;font-family:'Courier New',monospace}
+.yk-active .yk-body{stroke:#ff8844;stroke-width:1.3}
+.yk-active .yk-hub{stroke:#ff8844;stroke-width:1.3}
+.yk-lbl{fill:rgba(220,220,220,.85);font-size:6px;font-family:'Courier New',monospace}
 .yk-angle{fill:#ffaa44;font-size:9px;font-weight:bold;font-family:'Courier New',monospace}
-.yk-dual{fill:#ff3838;font-size:7.5px;font-weight:bold;font-family:'Courier New',monospace;display:none}
-.yk-dual.show{display:inline}
-.yk-arrow{fill:none;stroke:#ffaa44;stroke-width:1.6;stroke-linecap:round;opacity:0;transition:opacity .25s}
-.yk-arrow.show{opacity:.85}
+.yk-arrow{fill:none;stroke:#ffaa44;stroke-width:1.8;stroke-linecap:round;opacity:0;transition:opacity .25s}
+.yk-arrow.show{opacity:.9}
 /* Step D — Column push (side view) */
-.col-bg{fill:rgba(20,20,20,.7);stroke:rgba(120,120,120,.4);stroke-width:.5}
-.col-floor{stroke:rgba(120,120,120,.45);stroke-width:.4;stroke-dasharray:3 2}
-.col-pivot{fill:#666;stroke:#222;stroke-width:.5}
-.col-shaft{stroke:#aaa;stroke-width:3.6;stroke-linecap:round;transition:stroke .25s}
+.col-floor{stroke:rgba(180,180,180,.55);stroke-width:.5;stroke-dasharray:3 2}
+.col-pivot{fill:#888;stroke:#222;stroke-width:.5}
+.col-shaft{stroke:#bbb;stroke-width:3.6;stroke-linecap:round;transition:stroke .25s}
 .col-shaft.active{stroke:#ff8844}
-.col-yoke-mini{fill:#9aa0a4;stroke:#444;stroke-width:.4}
-.col-bar-bg{fill:rgba(60,60,60,.5);stroke:rgba(120,120,120,.4);stroke-width:.4}
+.col-yoke-mini{fill:#9aa0a4;stroke:#333;stroke-width:.5}
+.col-bar-bg{fill:rgba(40,40,40,.55);stroke:rgba(180,180,180,.5);stroke-width:.4}
 .col-bar{fill:#ff8844}
 
 #loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#668;font-size:13px;text-align:center}
@@ -230,63 +240,53 @@ canvas{display:block}
     <div class="evt" data-t="388.5">14:22:38 IMPACT 撞击</div>
   </div>
   <div id="p-actions">
-    <!-- Card: AP WARNING (Step C, active T+1..T+8 around AP disconnect) -->
+    <!-- AP WARNING — top-center (glareshield position, 2 indicators) -->
     <div class="act-card" id="card-ap">
-      <div class="act-hdr">AUTO PILOT &middot; 自驾</div>
-      <svg class="act-svg" width="200" height="100" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
-        <rect class="ap-glare" x="10" y="14" width="180" height="50" rx="3"/>
-        <text x="100" y="28" text-anchor="middle" class="ap-lbl" style="font-size:6.5px">GLARESHIELD &middot; MCP</text>
-        <!-- AP1 indicator -->
-        <rect class="ap-light" id="ap-light-1" x="38" y="36" width="28" height="16" rx="2.5"/>
-        <text x="52" y="47" text-anchor="middle" class="ap-lbl">AP1</text>
-        <text x="52" y="76" text-anchor="middle" class="ap-lbl" style="font-size:5.5px">WARN</text>
-        <!-- AP2 indicator -->
-        <rect class="ap-light" id="ap-light-2" x="134" y="36" width="28" height="16" rx="2.5"/>
-        <text x="148" y="47" text-anchor="middle" class="ap-lbl">AP2</text>
-        <text x="148" y="76" text-anchor="middle" class="ap-lbl" style="font-size:5.5px">WARN</text>
+      <svg class="act-svg" width="140" height="44" viewBox="0 0 140 44" xmlns="http://www.w3.org/2000/svg">
+        <rect class="ap-light" id="ap-light-1" x="6" y="6" width="56" height="28" rx="3"/>
+        <text x="34" y="22" text-anchor="middle" class="ap-lbl">AP1</text>
+        <text x="34" y="32" text-anchor="middle" class="ap-lbl" style="font-size:5.5px">WARN</text>
+        <rect class="ap-light" id="ap-light-2" x="78" y="6" width="56" height="28" rx="3"/>
+        <text x="106" y="22" text-anchor="middle" class="ap-lbl">AP2</text>
+        <text x="106" y="32" text-anchor="middle" class="ap-lbl" style="font-size:5.5px">WARN</text>
       </svg>
-      <div class="act-status" id="ap-status">— AP1 + AP2 ENGAGED —</div>
+      <div class="act-status" id="ap-status">AP ENGAGED</div>
     </div>
 
-    <!-- Card: FUEL CUTOFF SWITCH (Step A, active 266..274 around T+0 cutoff) -->
+    <!-- DUAL INPUT badge — center floater, only when both pilots applying force -->
+    <div class="act-card" id="card-dual">★ DUAL INPUT &middot; 双重输入 ★</div>
+
+    <!-- FUEL CUTOFF SWITCH — bottom-center (pedestal position) -->
     <div class="act-card" id="card-fuel">
-      <div class="act-hdr">FUEL CUTOFF SW &middot; 燃油切断</div>
-      <svg class="act-svg" width="240" height="150" viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
-        <!-- Pedestal panel background -->
-        <rect x="0" y="60" width="240" height="90" class="fsw-pedestal"/>
-        <!-- Each switch: side-elevation view, toggle pivots about base; skirt lifts vertically -->
-        <!-- Switch 1 — ENG 1 -->
-        <g id="fsw-1" transform="translate(70,108)">
+      <div class="act-hdr">FUEL CUTOFF &middot; 燃油切断</div>
+      <svg class="act-svg" width="200" height="100" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Switch 1 — ENG 1 (left) -->
+        <g id="fsw-1" transform="translate(60,75)">
           <text class="fsw-lbl-eng" x="0" y="-50" text-anchor="middle">ENG 1</text>
           <text class="fsw-lbl fsw-lbl-run" x="0" y="-40" text-anchor="middle">RUN</text>
-          <text class="fsw-lbl fsw-lbl-cutoff" x="0" y="35" text-anchor="middle">CUTOFF</text>
-          <!-- Detent fence (the lock the toggle must lift over) -->
+          <text class="fsw-lbl fsw-lbl-cutoff" x="0" y="22" text-anchor="middle">CUTOFF</text>
           <line class="fsw-detent" x1="-12" y1="0" x2="-5" y2="0"/>
           <line class="fsw-detent" x1="5" y1="0" x2="12" y2="0"/>
-          <!-- Switch base body -->
           <rect class="fsw-base" x="-7" y="-3" width="14" height="10" rx="1"/>
-          <!-- Toggle (rotates 0°=RUN up, 180°=CUTOFF down) -->
           <g id="fsw-1-tog" transform="rotate(0)">
             <rect class="fsw-stem" x="-1.6" y="-30" width="3.2" height="30"/>
             <ellipse class="fsw-knob" cx="0" cy="-30" rx="5" ry="6"/>
             <circle class="fsw-led" cx="0" cy="-32" r="1.3"/>
           </g>
-          <!-- Skirt (lifts vertically when actuating) -->
           <g id="fsw-1-skirt" transform="translate(0,0)">
             <ellipse class="fsw-skirt-run" cx="0" cy="-2" rx="9" ry="2.5"/>
             <rect class="fsw-skirt-run" x="-9" y="-2" width="18" height="4"/>
           </g>
-          <!-- Hand-lift hint arrow (T-1 .. T+0) -->
           <g class="fsw-hand" id="fsw-1-hand">
             <path d="M 18 -22 L 18 -8 M 14 -12 L 18 -8 L 22 -12"/>
             <text x="25" y="-14" class="fsw-lbl" style="fill:#ffaa44">LIFT</text>
           </g>
         </g>
-        <!-- Switch 2 — ENG 2 (mirror) -->
-        <g id="fsw-2" transform="translate(170,108)">
+        <!-- Switch 2 — ENG 2 (right) -->
+        <g id="fsw-2" transform="translate(140,75)">
           <text class="fsw-lbl-eng" x="0" y="-50" text-anchor="middle">ENG 2</text>
           <text class="fsw-lbl fsw-lbl-run" x="0" y="-40" text-anchor="middle">RUN</text>
-          <text class="fsw-lbl fsw-lbl-cutoff" x="0" y="35" text-anchor="middle">CUTOFF</text>
+          <text class="fsw-lbl fsw-lbl-cutoff" x="0" y="22" text-anchor="middle">CUTOFF</text>
           <line class="fsw-detent" x1="-12" y1="0" x2="-5" y2="0"/>
           <line class="fsw-detent" x1="5" y1="0" x2="12" y2="0"/>
           <rect class="fsw-base" x="-7" y="-3" width="14" height="10" rx="1"/>
@@ -304,81 +304,82 @@ canvas{display:block}
             <text x="25" y="-14" class="fsw-lbl" style="fill:#ffaa44">LIFT</text>
           </g>
         </g>
-        <!-- Sub-label -->
-        <text x="120" y="78" text-anchor="middle" class="fsw-lbl">CENTER PEDESTAL &middot; 中央台</text>
       </svg>
-      <div class="act-status" id="fsw-status">— RUN · STABLE —</div>
+      <div class="act-status" id="fsw-status">RUN · LOCKED</div>
     </div>
 
-    <!-- Card: YOKE / CONTROL WHEEL (Step B, active T+1..T+22) -->
-    <div class="act-card" id="card-yoke">
-      <div class="act-hdr">CTRL WHEEL &middot; 操纵轮</div>
-      <svg class="act-svg" width="220" height="160" viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
-        <rect class="yk-bg" x="5" y="5" width="210" height="120" rx="3"/>
-        <text x="110" y="18" text-anchor="middle" class="yk-lbl">FRONT VIEW · 正视</text>
-        <!-- Yoke (rotates as a unit) — authentic 737 U-shape geometry -->
-        <g id="yoke-rot" transform="translate(110,72) rotate(0)">
+    <!-- CTRL WHEEL · CAPTAIN — mid-left -->
+    <div class="act-card" id="card-yoke-L">
+      <div class="act-hdr">YOKE &middot; CAPT 左</div>
+      <svg class="act-svg" width="120" height="100" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+        <g id="yoke-L-rot" transform="translate(60,50) rotate(0)">
           <!-- Top crossbar (the U's upper bridge) -->
-          <path class="yk-body" d="M -42 -3 Q -42 -27 -22 -27 L 22 -27 Q 42 -27 42 -3 L 42 1 L -42 1 Z"/>
-          <!-- Left vertical grip -->
-          <rect class="yk-grip" x="-46" y="-3" width="9" height="36" rx="2.5"/>
-          <!-- Right vertical grip -->
-          <rect class="yk-grip" x="37" y="-3" width="9" height="36" rx="2.5"/>
-          <!-- Spokes from hub to upper crossbar corners -->
-          <line class="yk-spoke" x1="0" y1="0" x2="-26" y2="-22"/>
-          <line class="yk-spoke" x1="0" y1="0" x2="26" y2="-22"/>
-          <!-- Hub -->
-          <circle class="yk-hub" r="9"/>
+          <path class="yk-body" d="M -38 -3 Q -38 -24 -20 -24 L 20 -24 Q 38 -24 38 -3 L 38 1 L -38 1 Z"/>
+          <rect class="yk-grip" x="-42" y="-3" width="8" height="32" rx="2.5"/>
+          <rect class="yk-grip" x="34" y="-3" width="8" height="32" rx="2.5"/>
+          <line class="yk-spoke" x1="0" y1="0" x2="-24" y2="-20"/>
+          <line class="yk-spoke" x1="0" y1="0" x2="24" y2="-20"/>
+          <circle class="yk-hub" r="8"/>
           <text x="0" y="2" text-anchor="middle" class="yk-lbl" style="fill:#888;font-size:3.5px">737</text>
-          <!-- Buttons on left grip (top→bottom: AP-disconnect red, dual trim, PTT blue) -->
-          <rect class="yk-btn-ap" x="-44.5" y="3" width="6" height="3" rx=".8"/>
-          <rect class="yk-btn-trim" x="-44.5" y="9" width="6" height="2.5" rx=".5"/>
-          <rect class="yk-btn-trim" x="-44.5" y="13" width="6" height="2.5" rx=".5"/>
-          <rect class="yk-btn-ptt" x="-44.5" y="22" width="6" height="3" rx=".8"/>
-          <!-- Buttons on right grip (mirror) -->
-          <rect class="yk-btn-ap" x="38.5" y="3" width="6" height="3" rx=".8"/>
-          <rect class="yk-btn-trim" x="38.5" y="9" width="6" height="2.5" rx=".5"/>
-          <rect class="yk-btn-trim" x="38.5" y="13" width="6" height="2.5" rx=".5"/>
-          <rect class="yk-btn-ptt" x="38.5" y="22" width="6" height="3" rx=".8"/>
+          <rect class="yk-btn-ap" x="-40.5" y="2" width="5" height="2.6" rx=".6"/>
+          <rect class="yk-btn-trim" x="-40.5" y="8" width="5" height="2.2" rx=".4"/>
+          <rect class="yk-btn-trim" x="-40.5" y="12" width="5" height="2.2" rx=".4"/>
+          <rect class="yk-btn-ptt" x="-40.5" y="20" width="5" height="2.6" rx=".6"/>
+          <rect class="yk-btn-ap" x="35.5" y="2" width="5" height="2.6" rx=".6"/>
+          <rect class="yk-btn-trim" x="35.5" y="8" width="5" height="2.2" rx=".4"/>
+          <rect class="yk-btn-trim" x="35.5" y="12" width="5" height="2.2" rx=".4"/>
+          <rect class="yk-btn-ptt" x="35.5" y="20" width="5" height="2.6" rx=".6"/>
         </g>
-        <!-- Curved rotation arrow (shows active rotation direction) -->
-        <g id="yk-arrow" class="yk-arrow">
-          <path d="M 70 110 Q 110 130 150 110"/>
-          <path d="M 70 110 L 65 105 L 67 113 Z" fill="#ffaa44"/>
+        <g id="yk-L-arrow" class="yk-arrow">
+          <path d="M 30 92 Q 60 110 90 92"/>
+          <path d="M 30 92 L 26 88 L 28 96 Z" fill="#ffaa44"/>
         </g>
-        <!-- Angle readout + DUAL INPUT badge -->
-        <text id="yk-angle" x="110" y="118" text-anchor="middle" class="yk-angle">0&deg;</text>
-        <text id="yk-dual" x="110" y="148" text-anchor="middle" class="yk-dual">★ DUAL INPUT 双重输入 ★</text>
       </svg>
-      <div class="act-status" id="yk-status">— LIGHT INPUT —</div>
+      <div class="act-status" id="yk-L-angle" style="font-size:11px;color:#ffaa44">0°</div>
     </div>
 
-    <!-- Card: CONTROL COLUMN PUSH (Step D, active T+5..T+22) -->
-    <div class="act-card" id="card-column">
-      <div class="act-hdr">CTRL COLUMN &middot; 驾驶杆</div>
-      <svg class="act-svg" width="180" height="160" viewBox="0 0 180 160" xmlns="http://www.w3.org/2000/svg">
-        <rect class="col-bg" x="5" y="5" width="170" height="120" rx="3"/>
-        <text x="90" y="18" text-anchor="middle" class="yk-lbl">SIDE VIEW · 侧视</text>
-        <!-- Floor / cockpit reference line -->
-        <line class="col-floor" x1="20" y1="108" x2="160" y2="108"/>
-        <!-- Pivot at base -->
-        <circle class="col-pivot" cx="90" cy="108" r="2.5"/>
-        <!-- Column shaft + mini yoke (rotates forward as pilot pushes) -->
-        <g id="col-rot" transform="rotate(0 90 108)">
-          <line id="col-shaft-line" class="col-shaft" x1="90" y1="108" x2="90" y2="40"/>
-          <rect class="col-yoke-mini" x="80" y="33" width="20" height="6" rx="2"/>
-          <line class="col-shaft" x1="86" y1="36" x2="86" y2="44" style="stroke-width:.7"/>
-          <line class="col-shaft" x1="94" y1="36" x2="94" y2="44" style="stroke-width:.7"/>
+    <!-- CTRL WHEEL · F/O — mid-right (mirror of L, rotates identically) -->
+    <div class="act-card" id="card-yoke-R">
+      <div class="act-hdr">YOKE &middot; F/O 右</div>
+      <svg class="act-svg" width="120" height="100" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+        <g id="yoke-R-rot" transform="translate(60,50) rotate(0)">
+          <path class="yk-body" d="M -38 -3 Q -38 -24 -20 -24 L 20 -24 Q 38 -24 38 -3 L 38 1 L -38 1 Z"/>
+          <rect class="yk-grip" x="-42" y="-3" width="8" height="32" rx="2.5"/>
+          <rect class="yk-grip" x="34" y="-3" width="8" height="32" rx="2.5"/>
+          <line class="yk-spoke" x1="0" y1="0" x2="-24" y2="-20"/>
+          <line class="yk-spoke" x1="0" y1="0" x2="24" y2="-20"/>
+          <circle class="yk-hub" r="8"/>
+          <text x="0" y="2" text-anchor="middle" class="yk-lbl" style="fill:#888;font-size:3.5px">737</text>
+          <rect class="yk-btn-ap" x="-40.5" y="2" width="5" height="2.6" rx=".6"/>
+          <rect class="yk-btn-trim" x="-40.5" y="8" width="5" height="2.2" rx=".4"/>
+          <rect class="yk-btn-trim" x="-40.5" y="12" width="5" height="2.2" rx=".4"/>
+          <rect class="yk-btn-ptt" x="-40.5" y="20" width="5" height="2.6" rx=".6"/>
+          <rect class="yk-btn-ap" x="35.5" y="2" width="5" height="2.6" rx=".6"/>
+          <rect class="yk-btn-trim" x="35.5" y="8" width="5" height="2.2" rx=".4"/>
+          <rect class="yk-btn-trim" x="35.5" y="12" width="5" height="2.2" rx=".4"/>
+          <rect class="yk-btn-ptt" x="35.5" y="20" width="5" height="2.6" rx=".6"/>
         </g>
-        <!-- "Forward" hint -->
-        <text x="158" y="112" text-anchor="end" class="yk-lbl" style="font-size:5.5px;fill:rgba(180,180,180,.55)">→ FWD</text>
-        <!-- Push position bar -->
-        <text x="20" y="135" class="yk-lbl" style="font-size:5.5px">NEUTRAL</text>
-        <text x="160" y="135" text-anchor="end" class="yk-lbl" style="font-size:5.5px;fill:#ff5544">FULL PUSH · NOSE DN</text>
-        <rect class="col-bar-bg" x="20" y="138" width="140" height="6" rx="2"/>
-        <rect id="col-bar" class="col-bar" x="22" y="139.5" width="0" height="3" rx="1"/>
+        <g id="yk-R-arrow" class="yk-arrow">
+          <path d="M 30 92 Q 60 110 90 92"/>
+          <path d="M 30 92 L 26 88 L 28 96 Z" fill="#ffaa44"/>
+        </g>
       </svg>
-      <div class="act-status" id="col-status">— NEUTRAL —</div>
+      <div class="act-status" id="yk-R-angle" style="font-size:11px;color:#ffaa44">0°</div>
+    </div>
+
+    <!-- CTRL COLUMN — minimal side-view, no chrome (above fuel) -->
+    <div class="act-card" id="card-column">
+      <div class="act-hdr">COLUMN &middot; 驾驶杆 推</div>
+      <svg class="act-svg" width="120" height="90" viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+        <line class="col-floor" x1="10" y1="78" x2="110" y2="78"/>
+        <circle class="col-pivot" cx="60" cy="78" r="2.5"/>
+        <g id="col-rot" transform="rotate(0 60 78)">
+          <line id="col-shaft-line" class="col-shaft" x1="60" y1="78" x2="60" y2="22"/>
+          <rect class="col-yoke-mini" x="50" y="16" width="20" height="6" rx="2"/>
+        </g>
+        <text x="106" y="82" text-anchor="end" class="yk-lbl" style="font-size:5.5px">→ FWD</text>
+      </svg>
+      <div class="act-status" id="col-status">PUSH 0%</div>
     </div>
   </div>
   <div id="event-banner"><span id="eb-msg"></span><div class="esub" id="eb-sub"></div></div>
@@ -914,13 +915,17 @@ const evtEls=document.querySelectorAll('.evt');
    fuel switch with detent fence, etc).
    tF = t − 268 (engine cutoff = T+0). */
 const act = {strip:null,
-  fuelCard:null, fuel1Tog:null, fuel2Tog:null, fuel1Skirt:null, fuel2Skirt:null, fuel1Hand:null, fuel2Hand:null, fuelStatus:null,
-  apCard:null, apLight1:null, apLight2:null, apStatus:null,
-  yokeCard:null, yokeRot:null, ykAngle:null, ykDual:null, ykArrow:null, ykStatus:null,
-  colCard:null, colRot:null, colShaft:null, colBar:null, colStatus:null};
+  fuelCard:null, fuel1Tog:null, fuel2Tog:null, fuel1Skirt:null, fuel2Skirt:null, fuel1Hand:null, fuel2Hand:null, fuelStatus:null, fuelSvg:null, fuelFlashed:false,
+  apCard:null, apLight1:null, apLight2:null, apStatus:null, apSvg:null, apFlashed:false,
+  yokeLCard:null, yokeLRot:null, ykLAngle:null, ykLArrow:null,
+  yokeRCard:null, yokeRRot:null, ykRAngle:null, ykRArrow:null,
+  colCard:null, colRot:null, colShaft:null, colStatus:null,
+  dualCard:null};
 function actInit(){
   act.strip      = document.getElementById('p-actions');
+  // Fuel switch
   act.fuelCard   = document.getElementById('card-fuel');
+  act.fuelSvg    = act.fuelCard.querySelector('svg');
   act.fuel1Tog   = document.getElementById('fsw-1-tog');
   act.fuel2Tog   = document.getElementById('fsw-2-tog');
   act.fuel1Skirt = document.getElementById('fsw-1-skirt');
@@ -928,32 +933,43 @@ function actInit(){
   act.fuel1Hand  = document.getElementById('fsw-1-hand');
   act.fuel2Hand  = document.getElementById('fsw-2-hand');
   act.fuelStatus = document.getElementById('fsw-status');
-  // AP card
+  // AP indicators
   act.apCard     = document.getElementById('card-ap');
+  act.apSvg      = act.apCard.querySelector('svg');
   act.apLight1   = document.getElementById('ap-light-1');
   act.apLight2   = document.getElementById('ap-light-2');
   act.apStatus   = document.getElementById('ap-status');
-  // Yoke card
-  act.yokeCard   = document.getElementById('card-yoke');
-  act.yokeRot    = document.getElementById('yoke-rot');
-  act.ykAngle    = document.getElementById('yk-angle');
-  act.ykDual     = document.getElementById('yk-dual');
-  act.ykArrow    = document.getElementById('yk-arrow');
-  act.ykStatus   = document.getElementById('yk-status');
-  // Column card
+  // Yoke L/R
+  act.yokeLCard  = document.getElementById('card-yoke-L');
+  act.yokeLRot   = document.getElementById('yoke-L-rot');
+  act.ykLAngle   = document.getElementById('yk-L-angle');
+  act.ykLArrow   = document.getElementById('yk-L-arrow');
+  act.yokeRCard  = document.getElementById('card-yoke-R');
+  act.yokeRRot   = document.getElementById('yoke-R-rot');
+  act.ykRAngle   = document.getElementById('yk-R-angle');
+  act.ykRArrow   = document.getElementById('yk-R-arrow');
+  // Column
   act.colCard    = document.getElementById('card-column');
   act.colRot     = document.getElementById('col-rot');
   act.colShaft   = document.getElementById('col-shaft-line');
-  act.colBar     = document.getElementById('col-bar');
   act.colStatus  = document.getElementById('col-status');
+  // Dual-input badge (standalone)
+  act.dualCard   = document.getElementById('card-dual');
+}
+function flashEl(el, cls){
+  if(!el) return;
+  el.classList.remove(cls);
+  // force reflow so animation re-triggers
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(()=>el.classList.remove(cls), 700);
 }
 function setCard(card, on){if(card)card.classList.toggle('show', on);}
 function updFuelCard(t){
-  // Visible only T-2..T+6 (centred on the cutoff transition).
   const tF = t - 268;
   const visible = tF >= -2 && tF <= 6;
   setCard(act.fuelCard, visible);
-  if(!visible) return;
+  if(!visible){ act.fuelFlashed = false; return; }
   // Animation phases of the lift-throw 737 fuel control switch:
   //   tF < -1     : RUN, locked (skirt seated, toggle 0°)
   //   tF ∈ [-1,0] : pilot grasps + lifts (skirt rises, "LIFT" arrow shows)
@@ -966,29 +982,30 @@ function updFuelCard(t){
   let status, statusColor;
   if (tF < -1) {
     togDeg = 0; skirtY = 0;
-    status = '— RUN · LOCKED —'; statusColor = 'rgba(150,200,150,.85)';
+    status = 'RUN · LOCKED'; statusColor = '#9bd09b';
   } else if (tF < 0) {
     // Lift-and-pull preparation phase
     const p = (tF + 1);             // 0..1
     togDeg = 0;
     skirtY = -6 * p;                // skirt rises up to 6px
     handOn = true;
-    status = '★ PILOT LIFTS SKIRT · 抬起防误锁 ★'; statusColor = '#ffaa44';
+    status = 'PILOT LIFTS · 抬保险'; statusColor = '#ffaa44';
   } else if (tF < 0.4) {
     // Rapid pivot through the detent fence
     const p = tF / 0.4;             // 0..1
     togDeg = 180 * p;
     skirtY = -6 + 4 * p;            // skirt drops back as toggle moves
     handOn = true;
-    status = '★ TOGGLE → CUTOFF · 切断 ★'; statusColor = '#ff4444';
+    status = 'TOGGLE → CUTOFF · 切断'; statusColor = '#ff4444';
+    if (!act.fuelFlashed) { flashEl(act.fuelSvg, 'flash-red'); act.fuelFlashed = true; }
   } else if (tF < 1) {
     const p = (tF - 0.4) / 0.6;
     togDeg = 180;
     skirtY = -2 + 2 * p;            // skirt fully seats
-    status = '★ CUTOFF · LOCKED ★'; statusColor = '#ff5555';
+    status = 'CUTOFF · LOCKED'; statusColor = '#ff5555';
   } else {
     togDeg = 180; skirtY = 0;
-    status = '✗ ENG 1 + ENG 2 · CUTOFF ✗'; statusColor = '#ff5555';
+    status = 'ENG 1 + 2 · CUTOFF'; statusColor = '#ff5555';
   }
   act.fuel1Tog.setAttribute('transform', 'rotate(' + togDeg.toFixed(1) + ')');
   act.fuel2Tog.setAttribute('transform', 'rotate(' + togDeg.toFixed(1) + ')');
@@ -1006,78 +1023,69 @@ function updFuelCard(t){
   act.fuelStatus.style.color = statusColor;
 }
 function updApCard(t){
-  // Step C — AP-1 / AP-2 warning lights. Visible T+1..T+8 around T+3 disconnect.
   const tF = t - 268;
   const visible = tF >= 1 && tF <= 8;
   setCard(act.apCard, visible);
-  if(!visible) return;
-  // FDR Fig 11: AP-1 + AP-2 Warn turn ON simultaneously at ~T+3s.
+  if(!visible){ act.apFlashed = false; return; }
   const warn = tF >= 3;
   act.apLight1.setAttribute('class', warn ? 'ap-light warn' : 'ap-light');
   act.apLight2.setAttribute('class', warn ? 'ap-light warn' : 'ap-light');
   if (warn) {
-    act.apStatus.textContent = '★ AP-1 + AP-2 DISCONNECT 自驾断开 ★';
+    act.apStatus.textContent = 'AP-1+AP-2 DISCONNECT · 自驾断开';
     act.apStatus.style.color = '#ff5544';
+    if (!act.apFlashed) { flashEl(act.apSvg, 'flash-red'); act.apFlashed = true; }
   } else {
-    act.apStatus.textContent = '— AP1 + AP2 ENGAGED —';
-    act.apStatus.style.color = 'rgba(150,200,150,.85)';
+    act.apStatus.textContent = 'AP ENGAGED';
+    act.apStatus.style.color = '#9bd09b';
   }
 }
 
-function updYokeCard(t){
-  // Step B — Control wheel rotation. Visible T+1..T+22.
-  const tF = t - 268;
+// Both yokes share the same Whl Pos profile (mechanically linked).
+function _whlDeg(tF){
+  let d = 0;
+  if      (tF >= 3 && tF < 7)  d = -90 * ((tF - 3) / 4);
+  else if (tF >= 7 && tF < 11) d = -90;
+  else if (tF >= 11 && tF < 20) d = -90 + 60 * ((tF - 11) / 9);
+  else if (tF >= 20)            d = -30 * Math.max(0, 1 - (tF - 20) / 1.5);
+  return d;
+}
+function _updYoke(card, rotG, angleEl, arrowEl, tF){
   const visible = tF >= 1 && tF <= 22;
-  setCard(act.yokeCard, visible);
+  setCard(card, visible);
   if(!visible) return;
-  // Whl Pos profile (deg, negative = left). Mirrors FDR Fig 12 envelope:
-  //   T+3..T+7 : ramp to -90° (full left)
-  //   T+7..T+11: hold -90°
-  //   T+11..T+20: ease back -90° → -30°
-  //   T+20+    : return to 0
-  let whlDeg = 0;
-  if      (tF >= 3 && tF < 7)  whlDeg = -90 * ((tF - 3) / 4);
-  else if (tF >= 7 && tF < 11) whlDeg = -90;
-  else if (tF >= 11 && tF < 20) whlDeg = -90 + 60 * ((tF - 11) / 9);
-  else if (tF >= 20)            whlDeg = -30 * Math.max(0, 1 - (tF - 20) / 1.5);
-  act.yokeRot.setAttribute('transform', 'translate(110,72) rotate(' + whlDeg.toFixed(1) + ')');
-  act.ykAngle.textContent = whlDeg.toFixed(0) + '°';
-  // Active styling — yoke highlighted while force applied
+  const whlDeg = _whlDeg(tF);
+  rotG.setAttribute('transform', 'translate(60,50) rotate(' + whlDeg.toFixed(1) + ')');
+  angleEl.textContent = whlDeg.toFixed(0) + '°';
   const yokeOn = tF >= 3 && tF < 22;
-  act.yokeRot.classList.toggle('yk-active', yokeOn);
-  act.ykArrow.classList.toggle('show', yokeOn && Math.abs(whlDeg) > 8);
-  // Dual-input badge (Local + Foreign forces both nonzero — FDR Fig 13)
-  act.ykDual.classList.toggle('show', tF >= 3 && tF < 22);
-  // Status
-  let status, statusColor = 'rgba(200,200,200,.7)';
-  if      (tF < 3)              status = '— LIGHT INPUT —';
-  else if (tF < 7)              status = '★ LEFT YOKE ROTATING 左压 ★';
-  else if (tF < 11)             status = '★ FULL LEFT · SUSTAINED ★';
-  else if (tF < 20)             status = '★ HELD: ROLL CONTINUES LEFT ★';
-  else                          status = '— RELAXING —';
-  if (tF >= 3 && tF < 20) statusColor = '#ff5544';
-  act.ykStatus.textContent = status;
-  act.ykStatus.style.color = statusColor;
+  rotG.classList.toggle('yk-active', yokeOn);
+  arrowEl.classList.toggle('show', yokeOn && Math.abs(whlDeg) > 8);
+}
+function updYokeCards(t){
+  const tF = t - 268;
+  _updYoke(act.yokeLCard, act.yokeLRot, act.ykLAngle, act.ykLArrow, tF);
+  _updYoke(act.yokeRCard, act.yokeRRot, act.ykRAngle, act.ykRArrow, tF);
+}
+
+function updDualCard(t){
+  const tF = t - 268;
+  setCard(act.dualCard, tF >= 3 && tF <= 22);
 }
 
 function updColumnCard(t){
-  // Step D — Control column push (side view). Visible T+5..T+22.
   const tF = t - 268;
   const visible = tF >= 5 && tF <= 22;
   setCard(act.colCard, visible);
   if(!visible) return;
-  // Push profile: smoothstep 0..1 over T+5..T+21. Column tilts forward
-  // up to ~14° at full push (matches Boeing's mechanical push range).
   const p = Math.max(0, Math.min(1, (tF - 5) / 16));
   const ease = p * p * (3 - 2 * p);
   const colDeg = 14 * ease;
-  act.colRot.setAttribute('transform', 'rotate(' + colDeg.toFixed(2) + ' 90 108)');
+  act.colRot.setAttribute('transform', 'rotate(' + colDeg.toFixed(2) + ' 60 78)');
   act.colShaft.classList.toggle('active', ease > 0.05);
-  act.colBar.setAttribute('width', (138 * ease).toFixed(1));
+  const pct = (ease * 100).toFixed(0);
   let status, statusColor = '#ffaa44';
-  if      (ease < 0.1) status = '— NEAR NEUTRAL —';
-  else if (ease < 0.5) status = '★ COLUMN PUSHING FWD 推杆 ★';
-  else                 { status = '★ FULL PUSH · NOSE DN ★'; statusColor = '#ff5544'; }
+  if      (ease < 0.1) { status = 'NEUTRAL'; statusColor = '#bbb'; }
+  else if (ease < 0.5)   status = 'PUSH ' + pct + '% · 推杆';
+  else                 { status = 'PUSH ' + pct + '% · NOSE DN'; statusColor = '#ff5544'; }
   act.colStatus.textContent = status;
   act.colStatus.style.color = statusColor;
 }
@@ -1086,7 +1094,8 @@ function updActions(t){
   if(!act.strip) return;
   updApCard(t);
   updFuelCard(t);
-  updYokeCard(t);
+  updYokeCards(t);
+  updDualCard(t);
   updColumnCard(t);
 }
 
