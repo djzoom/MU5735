@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MU5735 3D Flight Reconstruction</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:'Courier New',monospace;color:#c0d8c0}
+canvas{display:block}
+.panel{
+  background:rgba(0,0,0,.72);border:1px solid rgba(0,255,136,.18);
+  border-radius:4px;padding:10px 14px;backdrop-filter:blur(4px);
+}
+#hud{position:absolute;inset:0;pointer-events:none;font-size:12px}
+
+#p-title{position:absolute;top:12px;left:50%;transform:translateX(-50%);text-align:center;padding:8px 28px;white-space:nowrap}
+#p-title .main{font-size:15px;letter-spacing:2px;color:#e8e8e8}
+#p-title .sub{font-size:10px;color:#88aa88;margin-top:2px}
+#p-title .warn-line{font-size:10px;color:#ff6644;margin-bottom:3px}
+
+#p-flight{position:absolute;top:12px;left:14px;line-height:1.9;min-width:175px}
+.lbl{color:#668866;display:inline-block;width:48px;text-align:right;margin-right:4px}
+.val{color:#c0ffc0;font-weight:bold}
+#phase-label{font-size:13px;margin-bottom:4px;font-weight:bold}
+.derived{font-size:8px;color:#556;vertical-align:super}
+
+#p-info{position:absolute;top:12px;right:14px;line-height:1.9;text-align:right;min-width:185px}
+
+#p-alt{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:30px;height:250px;padding:0;overflow:hidden}
+#alt-bar{position:absolute;bottom:0;width:100%;background:linear-gradient(to top,#ff4444,#ffaa00 40%,#00cc66);transition:height .15s}
+#alt-num{position:absolute;top:-18px;left:0;width:100%;text-align:center;font-size:9px;color:#88aa88}
+
+#p-controls{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:auto;padding:10px 22px}
+.btn-row{display:flex;justify-content:center;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.btn{padding:5px 12px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.35);color:#88ddaa;cursor:pointer;border-radius:3px;font:11px 'Courier New',monospace;pointer-events:auto;transition:background .15s;white-space:nowrap}
+.btn:hover{background:rgba(0,255,136,.25)}
+.btn.active{background:rgba(0,255,136,.35);color:#fff;border-color:#00ff88}
+.sep{width:1px;background:rgba(0,255,136,.15);margin:0 4px}
+#timeline{width:min(560px,72vw);height:5px;background:#222;border-radius:3px;margin:6px auto;cursor:pointer;position:relative}
+#timeline-fill{height:100%;background:linear-gradient(90deg,#00cc66,#ff4444);border-radius:3px;width:0}
+#timeline-marker{position:absolute;top:-4px;width:12px;height:12px;background:#ddd;border-radius:50%;transform:translateX(-50%);left:0;z-index:3}
+#time-text{font-size:10px;color:#668866;margin-top:4px}
+.tl-tick{position:absolute;top:-6px;width:2px;height:17px;pointer-events:auto;cursor:pointer;z-index:2;transform:translateX(-50%)}
+.tl-tick::after{content:'';position:absolute;top:0;left:0;width:2px;height:17px;background:rgba(255,136,68,.35);border-radius:1px;transition:all .15s}
+.tl-tick:hover::after{background:#ff8844;width:3px;left:-0.5px}
+.tl-tip{display:none;position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.92);border:1px solid rgba(255,136,68,.3);padding:3px 8px;border-radius:3px;font-size:8px;color:#ff9966;white-space:nowrap;pointer-events:none;line-height:1.4}
+.tl-tick:hover .tl-tip{display:block}
+.tl-tick.tl-impact::after{background:rgba(255,34,34,.6)}
+.tl-tick.tl-impact:hover::after{background:#ff2222}
+
+#p-events{position:absolute;left:14px;top:215px;font-size:10px;line-height:1.7;max-height:calc(100vh - 330px);overflow-y:auto;pointer-events:none;padding:8px 10px;min-width:250px}
+.ehdr{color:rgba(255,102,68,.5);margin-bottom:4px;font-size:9px;letter-spacing:1px}
+.evt{padding:2px 8px;margin:1px 0;border-left:2px solid #333;color:#556;transition:all .25s}
+.evt.active{border-left-color:#ff4444;color:#ff9966;background:rgba(255,68,68,.08)}
+.evt.passed{border-left-color:#442222;color:#554444}
+
+#event-banner{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);background:rgba(40,0,0,.8);border:1px solid #ff4444;padding:14px 36px;border-radius:5px;text-align:center;font-size:15px;color:#ff8866;letter-spacing:1px;pointer-events:none;opacity:0;transition:opacity .35s;max-width:80vw}
+#event-banner.visible{opacity:1}
+.esub{font-size:10px;color:rgba(255,136,102,.5);margin-top:4px}
+
+#p-source{position:absolute;bottom:14px;left:14px;pointer-events:auto;padding:4px 10px;font-size:9px;max-width:380px}
+#src-toggle{color:rgba(0,255,136,.4);text-decoration:underline;cursor:pointer;letter-spacing:.5px}
+#src-toggle:hover{color:rgba(0,255,136,.7)}
+#src-list{display:none;margin-top:6px;line-height:1.8;color:rgba(0,255,136,.3)}
+#src-list a{color:rgba(100,200,255,.5);text-decoration:none;border-bottom:1px dotted rgba(100,200,255,.2)}
+#src-list a:hover{color:rgba(100,200,255,.9)}
+.src-note{color:rgba(255,180,100,.3);font-style:italic}
+
+.warning{color:#ff4444!important;animation:blink .5s infinite}
+@keyframes blink{50%{opacity:.3}}
+#loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#668;font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="loading">Loading satellite imagery &amp; aircraft model...</div>
+<div id="hud" style="display:none">
+  <div id="p-title" class="panel">
+    <div class="warn-line">TRAJECTORY: ADS-B MEASURED 航迹实测 &ensp;|&ensp; ATTITUDE: ESTIMATED 姿态估算 &ensp;|&ensp; FDR: PARTIAL 部分披露</div>
+    <div class="main">CHINA EASTERN AIRLINES FLIGHT MU5735</div>
+    <div class="sub">B-1791 &bull; Boeing 737-89P &bull; 2022-03-21 &bull; KMG → CAN</div>
+    <div style="font-size:8px;color:rgba(200,200,200,.35);margin-top:2px">OPEN SOURCE DATA ONLY 仅使用公开数据</div>
+  </div>
+  <div id="p-flight" class="panel">
+    <div id="phase-label">CRUISE</div>
+    <div><span class="lbl">ALT</span><span class="val" id="v-alt">29100</span> ft</div>
+    <div><span class="lbl">GS</span><span class="val" id="v-spd">457</span> kts</div>
+    <div><span class="lbl">HDG</span><span class="val" id="v-hdg">100</span>&deg;</div>
+    <div><span class="lbl">V/S</span><span class="val" id="v-vs">0</span> ft/min</div>
+    <div><span class="lbl">PITCH</span><span class="val" id="v-pitch">0.0</span>&deg;<span class="derived">est估</span></div>
+    <div><span class="lbl">BANK</span><span class="val" id="v-bank">0.0</span>&deg;<span class="derived">est估</span></div>
+  </div>
+  <div id="p-info" class="panel">
+    <div><span class="lbl">UTC</span><span class="val" id="v-utc">06:20:43</span></div>
+    <div><span class="lbl">CST</span><span class="val" id="v-cst">14:20:43</span></div>
+    <div><span class="lbl">LAT</span><span class="val" id="v-lat">23.3487</span>&deg;N</div>
+    <div><span class="lbl">LON</span><span class="val" id="v-lon">110.8508</span>&deg;E</div>
+    <div><span class="lbl">G</span><span class="val" id="v-gload">1.0</span><span class="derived">est估</span></div>
+  </div>
+  <div id="p-alt" class="panel"><div id="alt-num">ALT</div><div id="alt-bar" style="height:100%"></div></div>
+  <div id="p-controls" class="panel">
+    <div class="btn-row">
+      <button class="btn" id="btn-play">&#9654; Play</button>
+      <button class="btn" id="btn-pause">&#10073;&#10073;</button>
+      <div class="sep"></div>
+      <button class="btn" id="btn-1x">1&times;</button>
+      <button class="btn active" id="btn-2x">2&times;</button>
+      <button class="btn" id="btn-5x">5&times;</button>
+      <button class="btn" id="btn-10x">10&times;</button>
+      <div class="sep"></div>
+      <button class="btn" id="btn-jump">&#9660; Descent</button>
+    </div>
+    <div class="btn-row" id="cam-row">
+      <button class="btn cam-btn" id="cam-free">Free</button>
+      <button class="btn cam-btn active" id="cam-tail">Tail</button>
+      <button class="btn cam-btn" id="cam-left">L</button>
+      <button class="btn cam-btn" id="cam-right">R</button>
+      <button class="btn cam-btn" id="cam-top">Top</button>
+      <button class="btn cam-btn" id="cam-cockpit">FPV</button>
+    </div>
+    <div id="timeline"><div id="timeline-fill"></div><div id="timeline-marker"></div></div>
+    <div id="time-text"><span id="v-elapsed">00:00</span> / <span id="v-total">--:--</span> &ensp;|&ensp; Orbit: drag &ensp; Zoom: scroll &ensp; Seek: click bar</div>
+  </div>
+  <div id="p-events" class="panel">
+    <div class="ehdr">FDR / ADS-B EVENTS 事件时间线</div>
+    <div class="evt" data-t="268">14:20:38 Engine fuel SW CUTOFF 燃油切断</div>
+    <div class="evt" data-t="271">14:20:41 Control column pushed 驾驶杆前推</div>
+    <div class="evt" data-t="274">14:20:44 Last stable FL291 最后稳定</div>
+    <div class="evt" data-t="290">14:21:00 Descent 27,025 ft 开始下降</div>
+    <div class="evt" data-t="291">14:21:01 FDR stops ~26k ft FDR断电</div>
+    <div class="evt" data-t="305">14:21:15 Dive steepens 17,325 ft 俯冲加剧</div>
+    <div class="evt" data-t="336">14:21:46 1st dive bottom 7,850 ft 首次触底</div>
+    <div class="evt" data-t="346">14:21:56 Recovery 拉起 +3,520 ft/min</div>
+    <div class="evt" data-t="355">14:22:05 Peak recovery 8,600 ft 拉起峰值</div>
+    <div class="evt" data-t="372">14:22:22 2nd dive begins 二次俯冲</div>
+    <div class="evt" data-t="386">14:22:36 Last ADS-B 3,225 ft 最后信号</div>
+    <div class="evt" data-t="388.5">14:22:38 IMPACT 撞击</div>
+  </div>
+  <div id="event-banner"><span id="eb-msg"></span><div class="esub" id="eb-sub"></div></div>
+  <div id="p-source" class="panel">
+    <span id="src-toggle">DATA FIDELITY 数据真实度 &#9662;</span>
+    <div id="src-list">
+      <b style="color:rgba(0,200,100,.7)">&#9632; MEASURED 实测数据</b> &mdash; ADS-B<br>
+      &nbsp; Position 位置 &bull; Altitude 高度 &bull; Ground Speed 地速<br>
+      &nbsp; Heading 航向 &bull; Vertical Speed 垂直速率<br>
+      &nbsp; <a href="https://github.com/cathaypacific8747/mu5735" target="_blank">FR24 ADS-B granular</a> &mdash; 27 of 397 pts selected<br>
+      &nbsp; <span class="src-note">Flight path and timing are real recorded data.<br>
+      &nbsp; 航迹与时间为真实记录数据。</span><br>
+      <b style="color:rgba(255,200,80,.7)">&#9632; DISCLOSED 已披露</b> &mdash; FDR / CAAC<br>
+      &nbsp; Engine fuel cutoff 发动机燃油切断<br>
+      &nbsp; Control column pushed fwd 驾驶杆前推<br>
+      &nbsp; FDR power loss ~26,000 ft FDR断电<br>
+      &nbsp; <a href="https://www.ntsb.gov" target="_blank">NTSB FOIA DCA22WA102</a><br><br>
+      <b style="color:rgba(255,100,80,.7)">&#9632; ESTIMATED 估算值</b><br>
+      &nbsp; Pitch 俯仰角 = FPA + AOA estimate<br>
+      &nbsp; &nbsp; <span class="src-note">FPA from trajectory tangent 航迹切线方向<br>
+      &nbsp; &nbsp; AOA from V/S magnitude 迎角由垂直速率估算<br>
+      &nbsp; &nbsp; Column pushed fwd → nose steeper than path 驾驶杆前推→机头比航迹更陡</span><br>
+      &nbsp; Bank 倾斜角 = heading rate &times; 6<br>
+      &nbsp; &nbsp; <span class="src-note">Assumes coordinated flight 假设协调飞行</span><br>
+      &nbsp; G-load G载荷 &mdash; rough approx 粗略估算<br><br>
+      <b style="color:rgba(120,120,120,.7)">&#9632; UNAVAILABLE 未公开</b><br>
+      &nbsp; Actual pitch / roll / AOA 实际俯仰·滚转·迎角<br>
+      &nbsp; Control surface deflections 操纵面偏转<br>
+      &nbsp; Engine parameters 发动机参数<br>
+      &nbsp; Full FDR readout 完整FDR数据<br><br>
+      <b>Model 模型:</b> Boeing 737-800 (FR24 B738 GLTF)<br>
+      <b>Impact 撞击点:</b> 23&deg;19'25.5"N 111&deg;06'44.3"E &mdash; CAAC<br><br>
+      <div style="border-top:1px solid rgba(0,255,136,.1);padding-top:6px;color:rgba(200,200,200,.4);font-size:8px;line-height:1.6">
+        DISCLAIMER 声明<br>
+        All data used in this reconstruction comes from publicly disclosed open sources.
+        No classified or restricted information is used.<br>
+        本重建所使用的全部数据均来自网上公开披露的开源信息，未使用任何保密或受限数据。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader}    from 'three/addons/loaders/GLTFLoader.js';
+
+/* ================================================================
+   ADS-B DATA — 27 points from FR24 granular (397 total)
+   Fields: timestamp, lat, lon, altitude(ft), ground_speed(kts),
+           heading(deg), vertical_speed(ft/min)
+   NO pitch/bank/attitude in ADS-B — those are DERIVED below.
+   Last point (impact) extrapolated from trajectory.
+   ================================================================ */
+const RAW=[
+  {t:1647843370.000,lat:23.453979,lon:110.235718,alt:29100,spd:455,hdg:100,vs:0},
+  {t:1647843432.000,lat:23.426250,lon:110.374756,alt:29100,spd:454,hdg:100,vs:0},
+  {t:1647843494.000,lat:23.403809,lon:110.513969,alt:29100,spd:455,hdg:99, vs:0},
+  {t:1647843549.000,lat:23.383530,lon:110.638763,alt:29100,spd:457,hdg:100,vs:0},
+  {t:1647843592.580,lat:23.367690,lon:110.735540,alt:29100,spd:457,hdg:100,vs:0},
+  {t:1647843597.120,lat:23.365830,lon:110.746820,alt:29100,spd:457,hdg:100,vs:0},
+  {t:1647843607.620,lat:23.361820,lon:110.771280,alt:29100,spd:457,hdg:100,vs:0},
+  {t:1647843618.822,lat:23.357910,lon:110.794780,alt:29100,spd:457,hdg:100,vs:0},
+  {t:1647843633.596,lat:23.352360,lon:110.828680,alt:29100,spd:457,hdg:100,vs:0},
+  {t:1647843643.714,lat:23.348740,lon:110.850830,alt:29100,spd:457,hdg:100,vs:0},
+  {t:1647843659.832,lat:23.358120,lon:110.885360,alt:27025,spd:433,hdg:98, vs:-21696},
+  {t:1647843659.987,lat:23.358120,lon:110.885800,alt:26875,spd:436,hdg:98, vs:-21888},
+  {t:1647843664.116,lat:23.357440,lon:110.896150,alt:24925,spd:425,hdg:91, vs:-30784},
+  {t:1647843669.150,lat:23.356610,lon:110.905430,alt:22250,spd:386,hdg:100,vs:-30976},
+  {t:1647843674.952,lat:23.352630,lon:110.915920,alt:17325,spd:429,hdg:123,vs:-30976},
+  {t:1647843679.828,lat:23.344740,lon:110.924320,alt:15325,spd:520,hdg:140,vs:-22528},
+  {t:1647843690.678,lat:23.323100,lon:110.944390,alt:12725,spd:551,hdg:127,vs:-16832},
+  {t:1647843695.160,lat:23.317110,lon:110.955920,alt:11000,spd:556,hdg:112,vs:-21312},
+  {t:1647843700.820,lat:23.314200,lon:110.969490,alt:9150, spd:558,hdg:100,vs:-21888},
+  {t:1647843705.578,lat:23.314900,lon:110.983380,alt:7850, spd:590,hdg:81, vs:-15744},
+  {t:1647843715.848,lat:23.307730,lon:111.014760,alt:7425, spd:565,hdg:75, vs:3520},
+  {t:1647843721.064,lat:23.309400,lon:111.028750,alt:8025, spd:531,hdg:84, vs:7360},
+  {t:1647843725.000,lat:23.309740,lon:111.040410,alt:8600, spd:507,hdg:88, vs:8448},
+  {t:1647843741.870,lat:23.330310,lon:111.074680,alt:8175, spd:446,hdg:79, vs:-13248},
+  {t:1647843751.888,lat:23.335330,lon:111.097540,alt:4375, spd:442,hdg:73, vs:-26752},
+  {t:1647843755.972,lat:23.337520,lon:111.105580,alt:3225, spd:376,hdg:87, vs:-30976},
+  {t:1647843758.500,lat:23.32375, lon:111.11231, alt:0,    spd:390,hdg:87, vs:-31000},
+];
+
+/* ================================================================
+   GEO CONVERSION — lat/lon/alt → local 3D coords
+   +X = East, +Y = Up, -Z = North
+   ================================================================ */
+const REF_LAT=23.34,REF_LON=110.95;
+const D2R=Math.PI/180,FT2M=0.3048;
+const M_LAT=111320,M_LON=M_LAT*Math.cos(REF_LAT*D2R);
+const SC=0.01;
+const g2l=(la,lo,af)=>new THREE.Vector3(
+  (lo-REF_LON)*M_LON*SC,
+  af*FT2M*SC,
+  -(la-REF_LAT)*M_LAT*SC
+);
+
+const T0=RAW[0].t;
+const pts=RAW.map(d=>({...d, p:g2l(d.lat,d.lon,d.alt), dt:d.t-T0}));
+const DUR=pts[pts.length-1].dt;
+const START_T=255;
+const DI=10;
+
+/* ================================================================
+   SPLINE (position only) + INTERPOLATION
+   CatmullRom spline with getPoint() — NOT getPointAt().
+   getPoint(i/(N-1)) == control point i exactly.
+   Scalar data (alt, spd, vs, hdg) interpolated linearly from data.
+   ================================================================ */
+const curve=new THREE.CatmullRomCurve3(pts.map(p=>p.p.clone()),'centripetal');
+const N_PTS=pts.length;
+
+function t2u(t){
+  let i=0;for(;i<N_PTS-1;i++)if(pts[i+1].dt>=t)break;
+  if(i>=N_PTS-1)i=N_PTS-2;
+  const s=pts[i+1].dt-pts[i].dt;
+  const f=s>0?Math.min(1,Math.max(0,(t-pts[i].dt)/s)):0;
+  return(i+f)/(N_PTS-1);
+}
+
+let smP=0,smB=0,smH=100,_lt=-1;
+
+function interp(t){
+  t=Math.min(DUR,Math.max(0,t));
+  let i=0;for(;i<N_PTS-1;i++)if(pts[i+1].dt>=t)break;
+  if(i>=N_PTS-1)i=N_PTS-2;
+
+  const a=pts[i],b=pts[i+1],seg=b.dt-a.dt;
+  const f=seg>0?Math.min(1,(t-a.dt)/seg):0;
+
+  // Position: CatmullRom spline — smooth, C1-continuous through data points
+  const u=t2u(t);
+  const pos=curve.getPoint(Math.min(1,Math.max(0,u)));
+  pos.y=Math.max(0,pos.y);
+
+  // Scalars: linear interpolation from ADS-B data
+  const alt=a.alt+(b.alt-a.alt)*f;
+  const spd=a.spd+(b.spd-a.spd)*f;
+  const vs=a.vs+(b.vs-a.vs)*f;
+  const lat=a.lat+(b.lat-a.lat)*f;
+  const lon=a.lon+(b.lon-a.lon)*f;
+
+  // Heading: circular linear interpolation
+  let dh=b.hdg-a.hdg;if(dh>180)dh-=360;if(dh<-180)dh+=360;
+  let tH=a.hdg+dh*f;if(tH<0)tH+=360;if(tH>=360)tH-=360;
+
+  // PITCH — DERIVED, not measured
+  // 1) FPA from spline tangent (actual 3D trajectory direction)
+  const tan3=curve.getTangent(Math.min(0.9999,Math.max(0.0001,u)));
+  const fpa=Math.atan2(tan3.y,Math.sqrt(tan3.x*tan3.x+tan3.z*tan3.z));
+  // 2) AOA estimate: column pushed forward → nose below flight path
+  //    Cruise: +2°. Dive with V/S -31k: ≈ -25°. Recovery: +5°.
+  let aoa=2*D2R;
+  if(t>=pts[DI].dt){
+    if(vs<-1000) aoa=(2-Math.min(27,Math.abs(vs)/30000*27))*D2R;
+    else if(vs>1000) aoa=(2+Math.min(5,vs/10000*5))*D2R;
+  }
+  let tP=fpa+aoa;
+  tP=Math.max(-85*D2R,Math.min(Math.PI/6,tP));
+
+  // Bank — DERIVED from heading rate
+  const hr=seg>0?dh/seg:0;
+  let tB=Math.max(-Math.PI/3,Math.min(Math.PI/3,-hr*D2R*6));
+
+  // Exponential smoothing (frame-rate independent, tau=0.8s)
+  const el=_lt>=0?Math.abs(t-_lt):1/60;_lt=t;
+  const al=1-Math.exp(-el/0.8);
+  smP+=(tP-smP)*al;smB+=(tB-smB)*al;
+  let hd2=tH-smH;if(hd2>180)hd2-=360;if(hd2<-180)hd2+=360;
+  smH+=hd2*al;if(smH<0)smH+=360;if(smH>=360)smH-=360;
+
+  const gL=1+Math.abs(vs)/30000*2;
+  let ph='CRUISE';
+  if(t>=pts[DI].dt){
+    if(vs>1000)ph='RECOVERY';
+    else if(alt<9000&&vs<-5000)ph='FINAL DIVE';
+    else if(vs<-5000)ph='INITIAL DIVE';
+    else ph='MANEUVERING';
+  }
+  return{pos,lat,lon,alt,spd,vs,hdg:smH,pitch:smP,bank:smB,fpa:fpa,gLoad:gL,phase:ph,t};
+}
+
+/* ================================================================
+   RENDERER + SCENE
+   ================================================================ */
+const canvas=document.getElementById('canvas');
+const R=new THREE.WebGLRenderer({canvas,antialias:true,logarithmicDepthBuffer:true});
+R.setSize(innerWidth,innerHeight);R.setPixelRatio(Math.min(devicePixelRatio,2));
+R.shadowMap.enabled=true;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.3;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87CEEB);
+
+const cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.05,20000);
+cam.position.set(5,40,30);
+const oc=new OrbitControls(cam,canvas);
+oc.enableDamping=true;oc.dampingFactor=.06;oc.minDistance=0.3;oc.maxDistance=800;
+
+scene.add(new THREE.AmbientLight(0x8899aa,.65));
+const sun=new THREE.DirectionalLight(0xffffee,1.8);
+sun.position.set(80,200,40);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+const shc=sun.shadow.camera;shc.left=-200;shc.right=200;shc.top=200;shc.bottom=-200;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0x88ccff,0x446633,.3));
+
+/* ── sky ── */
+scene.add(new THREE.Mesh(
+  new THREE.SphereGeometry(5000,32,24),
+  new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
+    vertexShader:`varying vec3 vW;void main(){vW=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec3 vW;void main(){float h=normalize(vW).y;vec3 c=mix(vec3(.55,.70,.90),vec3(.25,.45,.85),clamp(h*2.,.0,1.));c=mix(c,vec3(.80,.85,.92),pow(1.-abs(h),6.));gl_FragColor=vec4(c,1.);}`
+  })
+));
+
+/* ================================================================
+   SATELLITE TERRAIN
+   ================================================================ */
+function lon2tx(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z));}
+function lat2ty(lat,z){const r=lat*D2R;return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z));}
+function tx2lon(x,z){return x/Math.pow(2,z)*360-180;}
+function ty2lat(y,z){const n=Math.PI-2*Math.PI*y/Math.pow(2,z);return 180/Math.PI*Math.atan(.5*(Math.exp(n)-Math.exp(-n)));}
+
+async function loadSatTerrain(){
+  const zoom=13,W=110.72,E=111.18,S2=23.26,N=23.48;
+  const xMin=lon2tx(W,zoom),xMax=lon2tx(E,zoom);
+  const yMin=lat2ty(N,zoom),yMax=lat2ty(S2,zoom);
+  const tw=xMax-xMin+1,th=yMax-yMin+1;
+  const cv=document.createElement('canvas');cv.width=tw*256;cv.height=th*256;
+  const ctx=cv.getContext('2d');ctx.fillStyle='#2a3a2a';ctx.fillRect(0,0,cv.width,cv.height);
+  const jobs=[];
+  for(let ty=yMin;ty<=yMax;ty++)for(let tx=xMin;tx<=xMax;tx++){
+    jobs.push(new Promise(res=>{
+      const img=new Image();img.crossOrigin='anonymous';
+      img.onload=()=>{ctx.drawImage(img,(tx-xMin)*256,(ty-yMin)*256);res(true);};
+      img.onerror=()=>res(false);
+      img.src=`https://mt${(tx+ty)%4}.google.com/vt/lyrs=s&x=${tx}&y=${ty}&z=${zoom}`;
+    }));
+  }
+  const results=await Promise.all(jobs);
+  const loaded=results.filter(Boolean).length;
+  console.log(`Sat tiles: ${loaded}/${jobs.length}`);
+  const aW=tx2lon(xMin,zoom),aE=tx2lon(xMax+1,zoom);
+  const aN=ty2lat(yMin,zoom),aS=ty2lat(yMax+1,zoom);
+  const tex=new THREE.CanvasTexture(cv);tex.minFilter=THREE.LinearMipMapLinearFilter;
+  tex.anisotropy=R.capabilities.getMaxAnisotropy();
+  const p1=g2l(aN,aW,0),p2=g2l(aS,aE,0);
+  const w=Math.abs(p2.x-p1.x),h=Math.abs(p2.z-p1.z);
+  const cx=(p1.x+p2.x)/2,cz=(p1.z+p2.z)/2;
+  const geo=new THREE.PlaneGeometry(w,h,120,120);geo.rotateX(-Math.PI/2);
+  const P=geo.attributes.position;
+  for(let i2=0;i2<P.count;i2++){
+    const x=P.getX(i2)+cx,z=P.getZ(i2)+cz;
+    P.setY(i2,Math.max(Math.sin(x*.018)*Math.cos(z*.013)*1.8+Math.sin(x*.047+1)*Math.cos(z*.038+2)*.8+Math.sin(x*.11+3)*Math.cos(z*.09)*.4,-.3));
+    P.setX(i2,P.getX(i2)+cx);P.setZ(i2,P.getZ(i2)+cz);
+  }
+  geo.computeVertexNormals();
+  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:tex,roughness:.92,metalness:0}));
+  mesh.receiveShadow=true;scene.add(mesh);return{loaded,mesh};
+}
+
+function makeFallbackTerrain(){
+  const g=new THREE.PlaneGeometry(800,800,150,150);g.rotateX(-Math.PI/2);
+  const P=g.attributes.position;
+  for(let i2=0;i2<P.count;i2++){
+    const x=P.getX(i2),z=P.getZ(i2);
+    P.setY(i2,Math.max(Math.sin(x*.018)*Math.cos(z*.013)*2+Math.sin(x*.047+1)*Math.cos(z*.038+2)+Math.sin(x*.11+3)*Math.cos(z*.09)*.5,-.5));
+  }
+  g.computeVertexNormals();
+  const cols=new Float32Array(P.count*3);
+  for(let i2=0;i2<P.count;i2++){const y=P.getY(i2);cols[i2*3]=.12+y*.015;cols[i2*3+1]=.32+y*.025;cols[i2*3+2]=.08;}
+  g.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  scene.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9})));
+}
+
+/* ── crash marker ── */
+function makeCrashMarker(){
+  const cp=g2l(23.32375,111.11231,0);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(1.2,1.6,32),
+    new THREE.MeshBasicMaterial({color:0xcc2200,side:THREE.DoubleSide,transparent:true,opacity:.7}));
+  ring.rotation.x=-Math.PI/2;ring.position.copy(cp);ring.position.y=.15;
+  scene.add(ring);window._ring=ring;
+  const cv2=document.createElement('canvas');cv2.width=256;cv2.height=48;
+  const c2=cv2.getContext('2d');c2.fillStyle='#ff4444';c2.font='bold 20px Courier New';c2.textAlign='center';
+  c2.fillText('IMPACT SITE',128,20);c2.font='13px Courier New';c2.fillText("23°19'25.5\"N 111°06'44.3\"E",128,40);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv2),transparent:true}));
+  sp.position.copy(cp);sp.position.y=4;sp.scale.set(14,2.6,1);scene.add(sp);
+}
+
+/* ── flight path ── */
+function makeFlightPath(){
+  const cruP=pts.slice(0,DI+1).map(p=>p.p);
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cruP),
+    new THREE.LineBasicMaterial({color:0x00cc66,transparent:true,opacity:.5})));
+  const desP=[];const N2=400;
+  for(let j=0;j<=N2;j++){
+    const u=t2u(pts[DI].dt+(DUR-pts[DI].dt)*j/N2);
+    desP.push(curve.getPoint(Math.min(1,Math.max(0,u))));
+  }
+  const dc=[];for(let j=0;j<=N2;j++){const r=j/N2;dc.push(1,1-r*.7,.3-r*.3);}
+  const dg=new THREE.BufferGeometry().setFromPoints(desP);
+  dg.setAttribute('color',new THREE.Float32BufferAttribute(dc,3));
+  scene.add(new THREE.Line(dg,new THREE.LineBasicMaterial({vertexColors:true})));
+  const gp=desP.map(v=>new THREE.Vector3(v.x,.08,v.z));
+  const gl2=new THREE.Line(new THREE.BufferGeometry().setFromPoints(gp),
+    new THREE.LineDashedMaterial({color:0xaa3333,dashSize:.5,gapSize:.3,transparent:true,opacity:.3}));
+  gl2.computeLineDistances();scene.add(gl2);
+  for(let i2=DI;i2<N_PTS;i2+=2){const p=pts[i2].p;const ll=new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([p,new THREE.Vector3(p.x,0,p.z)]),
+    new THREE.LineDashedMaterial({color:0x993333,dashSize:.8,gapSize:.5,transparent:true,opacity:.12}));
+    ll.computeLineDistances();scene.add(ll);}
+  const dotG=new THREE.SphereGeometry(.15,6,6);
+  for(let i2=DI;i2<N_PTS;i2++){
+    const dot=new THREE.Mesh(dotG,new THREE.MeshBasicMaterial({color:i2===N_PTS-1?0xff2222:0xffaa44}));
+    dot.position.copy(pts[i2].p);scene.add(dot);
+  }
+}
+
+function makeAltLabels(){
+  [5000,10000,15000,20000,25000,29100].forEach(a=>{
+    const y=a*FT2M*SC;const cv=document.createElement('canvas');cv.width=96;cv.height=24;
+    const c=cv.getContext('2d');c.fillStyle=a===29100?'#44dd88':'#556677';
+    c.font='14px Courier New';c.fillText((a/1000|0)+'k ft',4,17);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:.45}));
+    sp.scale.set(4,1,1);sp.position.set(pts[DI].p.x-8,y,pts[DI].p.z+4);scene.add(sp);
+  });
+}
+
+/* ================================================================
+   AIRCRAFT MODEL
+   ================================================================ */
+const AG=new THREE.Group();AG.visible=false;scene.add(AG);
+
+async function loadAircraft(){
+  const loader=new GLTFLoader();
+  try{
+    const gltf=await new Promise((res,rej)=>loader.load('b738.glb',res,undefined,rej));
+    const m=gltf.scene;
+    const box=new THREE.Box3().setFromObject(m);
+    const sz=box.getSize(new THREE.Vector3());
+    console.log('B738 bbox:',sz.x.toFixed(1),sz.y.toFixed(1),sz.z.toFixed(1));
+    // After GLB internal transforms (Y_UP + per-node R_z): nose at -Z, fin at +Y
+    // R_y(-π/2) rotates nose from -Z to +X (the heading formula's forward axis)
+    m.rotation.y = -Math.PI/2;
+    const box2=new THREE.Box3().setFromObject(m);
+    const mx=Math.max(box2.getSize(new THREE.Vector3()).x,box2.getSize(new THREE.Vector3()).y,box2.getSize(new THREE.Vector3()).z);
+    m.scale.multiplyScalar(2.4/mx);
+    const box3=new THREE.Box3().setFromObject(m);
+    m.position.sub(box3.getCenter(new THREE.Vector3()));
+    m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+    AG.add(m);
+    console.log('B738 model loaded');
+  }catch(e){
+    console.warn('B738 load failed, using procedural:',e);
+    buildSimple();
+  }
+}
+
+function buildSimple(){
+  const g=new THREE.Group();
+  const wm=new THREE.MeshStandardMaterial({color:0xf0f0f5,roughness:.3,metalness:.5});
+  const bm=new THREE.MeshStandardMaterial({color:0x1a3399,roughness:.3,metalness:.4});
+  const em=new THREE.MeshStandardMaterial({color:0x778899,roughness:.45,metalness:.65});
+  const fp=[];for(let i2=0;i2<=40;i2++){const t2=i2/40,x=(t2-.5)*2.4;let r=.19;if(t2<.15)r=.19*Math.sqrt(1-((0.15-t2)/0.15)**2);else if(t2>.85)r=.19*(1-((t2-.85)/.15)**1.5);fp.push(new THREE.Vector2(r,x));}
+  const fg=new THREE.LatheGeometry(fp,20);fg.rotateZ(Math.PI/2);g.add(new THREE.Mesh(fg,wm));
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(.5,.015,1.8),wm));
+  const tf=new THREE.Mesh(new THREE.BoxGeometry(.35,.45,.015),bm);tf.position.set(-.9,.28,0);g.add(tf);
+  const hs=new THREE.Mesh(new THREE.BoxGeometry(.25,.012,.65),wm);hs.position.set(-1,.06,0);g.add(hs);
+  [-1,1].forEach(s=>{const eg=new THREE.CylinderGeometry(.07,.08,.35,12);eg.rotateZ(Math.PI/2);const e2=new THREE.Mesh(eg,em);e2.position.set(.12,-.16,s*.45);g.add(e2);});
+  g.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+  AG.add(g);
+}
+
+/* ================================================================
+   EVENTS
+   ================================================================ */
+const EVT=[
+  {t:268,m:"ENG FUEL CUTOFF 燃油切断",s:"FDR: both engine fuel switches RUN→CUTOFF at FL291 双发燃油开关从运行切至关断",tl:"Fuel cutoff 燃油切断"},
+  {t:271,m:"CONTROL COLUMN PUSHED 驾驶杆前推",s:"FDR: abnormal control inputs, 3s after fuel cutoff 异常操纵输入",tl:"Column push 前推"},
+  {t:274,m:"LAST STABLE — FL291 最后稳定高度",s:"29,100 ft, 457 kts, heading 100° — all nominal 所有参数正常",tl:"Last stable 稳定"},
+  {t:290,m:"DESCENT — 27,025 FT 开始下降",s:"ADS-B: V/S -21,696 ft/min — 16s gap since stable 距稳定点16秒",tl:"Descent 下降"},
+  {t:291,m:"FDR STOPS ~26,000 FT FDR断电",s:"Engine N2 below generator threshold, electrical power lost 发电机失电",tl:"FDR stop 断电"},
+  {t:305,m:"DIVE STEEPENS 俯冲加剧 — 17,325 FT",s:"V/S -30,976 ft/min, heading 91°→123° 航向急变",tl:"Steepen 加剧"},
+  {t:336,m:"1ST DIVE BOTTOM 首次触底 — 7,850 FT",s:"Ground speed 590 kts, V/S -15,744 ft/min",tl:"Bottom 触底"},
+  {t:346,m:"RECOVERY 拉起",s:"V/S turns positive +3,520 ft/min, altitude rising 高度回升",tl:"Recovery 拉起"},
+  {t:355,m:"PEAK RECOVERY 拉起峰值 — 8,600 FT",s:"Gained ~1,200 ft, speed 507 kts 回升约370米",tl:"Peak 峰值"},
+  {t:372,m:"2ND DIVE 二次俯冲",s:"V/S -13,248 ft/min at 8,175 ft 再次进入俯冲",tl:"2nd dive 二次"},
+  {t:386,m:"LAST ADS-B 最后信号 — 3,225 FT",s:"376 kts, V/S -30,976 ft/min",tl:"Last signal 末信号"},
+  {t:388.5,m:"IMPACT 撞击 — TENG COUNTY 藤县",s:"23°19'25.5\"N 111°06'44.3\"E — 广西梧州市藤县",tl:"IMPACT 撞击"},
+];
+let lastEI=-1,bannerT=0;
+const eBanner=document.getElementById('event-banner'),eMsg=document.getElementById('eb-msg'),eSub=document.getElementById('eb-sub');
+const evtEls=document.querySelectorAll('.evt');
+function updEvt(t){
+  let ci=-1;for(let i2=EVT.length-1;i2>=0;i2--)if(t>=EVT[i2].t){ci=i2;break;}
+  if(ci!==lastEI&&ci>=0){eMsg.textContent=EVT[ci].m;eSub.textContent=EVT[ci].s;eBanner.classList.add('visible');clearTimeout(bannerT);bannerT=setTimeout(()=>eBanner.classList.remove('visible'),4500);lastEI=ci;}
+  evtEls.forEach(el=>{const et=+el.dataset.t;el.className=t>=et+5?'evt passed':t>=et-1?'evt active':'evt';});
+}
+
+/* ── impact ── */
+const impP=[];let impacted=false;
+const impactPos=g2l(23.32375,111.11231,0);
+function doImpact(){
+  if(impacted)return;impacted=true;
+  AG.position.copy(impactPos);
+  AG.position.y=0.15;
+  const finalHr=-87*D2R+Math.PI/2;
+  AG.rotation.order='YZX';
+  AG.rotation.set(0,finalHr,-80*D2R);
+  AG.visible=S.cam!=='cockpit';
+  const dg=new THREE.SphereGeometry(.5,8,8);
+  for(let i2=0;i2<20;i2++){
+    const sh=.2+Math.random()*.15;
+    const p=new THREE.Mesh(dg,new THREE.MeshBasicMaterial({color:new THREE.Color(sh,sh*.85,sh*.6),transparent:true,opacity:.5+Math.random()*.3}));
+    p.position.set(impactPos.x,Math.max(impactPos.y,.3),impactPos.z);
+    p.userData.v=new THREE.Vector3((Math.random()-.5)*1.2,Math.random()*1.5+.3,(Math.random()-.5)*1.2);
+    p.userData.life=2+Math.random()*4;p.scale.setScalar(.2+Math.random()*.7);
+    scene.add(p);impP.push(p);
+  }
+}
+
+/* ================================================================
+   CAMERA SYSTEM
+   All modes allow free orbit (mouse/trackpad).
+   Manual orbit → revert to Free (follow).
+   Named modes position camera; Free just follows target.
+   ================================================================ */
+const S={playing:true,t:0,speed:2,cam:'tail',camActive:false,userOrbit:false};
+let prevAircraftPos=new THREE.Vector3();
+let pTS=0;
+
+oc.addEventListener('start',()=>{
+  S.userOrbit=true;
+  if(S.cam!=='free'){
+    S.cam='free';S.camActive=false;
+    document.querySelectorAll('.cam-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('cam-free').classList.add('active');
+  }
+});
+
+function updCam(d){
+  if(impacted){
+    prevAircraftPos.copy(d.pos);
+    return;
+  }
+
+  // In all non-FPV modes, shift camera + target to follow aircraft movement
+  if(S.cam!=='cockpit'){
+    const delta=d.pos.clone().sub(prevAircraftPos);
+    if(delta.length()<50){
+      cam.position.add(delta);
+      oc.target.add(delta);
+    }
+  }
+  prevAircraftPos.copy(d.pos);
+
+  if(S.cam==='free') return;
+
+  const hr=d.hdg*D2R;
+  const fwd=new THREE.Vector3(Math.sin(hr),0,-Math.cos(hr));
+  const right=new THREE.Vector3(Math.cos(hr),0,Math.sin(hr));
+
+  if(S.cam==='tail'){
+    const tgt=d.pos.clone().sub(fwd.clone().multiplyScalar(12)).add(new THREE.Vector3(0,4,0));
+    cam.position.lerp(tgt,.04);
+    oc.target.lerp(d.pos,.06);
+  }else if(S.cam==='left'){
+    const tgt=d.pos.clone().sub(right.clone().multiplyScalar(14)).add(new THREE.Vector3(0,2,0));
+    cam.position.lerp(tgt,.04);
+    oc.target.lerp(d.pos,.06);
+  }else if(S.cam==='right'){
+    const tgt=d.pos.clone().add(right.clone().multiplyScalar(14)).add(new THREE.Vector3(0,2,0));
+    cam.position.lerp(tgt,.04);
+    oc.target.lerp(d.pos,.06);
+  }else if(S.cam==='top'){
+    cam.position.lerp(d.pos.clone().add(new THREE.Vector3(0,55,.1)),.04);
+    oc.target.lerp(d.pos,.06);
+  }else if(S.cam==='cockpit'){
+    AG.visible=false;
+    const fw2=new THREE.Vector3(Math.sin(hr),-Math.sin(d.pitch),-Math.cos(hr)).normalize();
+    const cp2=d.pos.clone().add(fw2.clone().multiplyScalar(.7));cp2.y+=.08;
+    cam.position.lerp(cp2,.12);
+    oc.target.lerp(cp2.clone().add(fw2.clone().multiplyScalar(30)),.12);
+  }
+}
+
+/* ================================================================
+   ANIMATION LOOP
+   ================================================================ */
+const trails=[];
+const trG=new THREE.SphereGeometry(.02,4,4);
+const trM=new THREE.MeshBasicMaterial({color:0x88bbff,transparent:true,opacity:.35});
+
+function animate(ts){
+  requestAnimationFrame(animate);
+  const dtMs=ts-pTS;pTS=ts;const dt=Math.min(dtMs/1000,.1);
+  if(S.playing){S.t+=dt*S.speed;if(S.t>=DUR){S.t=DUR;S.playing=false;}}
+  const d=interp(S.t);
+
+  if(!impacted){
+    if(d.alt>5){
+      AG.position.copy(d.pos);
+      const hr=-d.hdg*D2R+Math.PI/2;
+      AG.rotation.order='YZX';
+      AG.rotation.set(d.bank,hr,d.pitch);
+      AG.visible=S.cam!=='cockpit';
+    }else{
+      doImpact();
+    }
+  }else{
+    AG.visible=S.cam!=='cockpit';
+  }
+
+  // Trails during descent
+  if(d.phase!=='CRUISE'&&d.alt>5&&Math.random()<.2){
+    const tr=new THREE.Mesh(trG,trM.clone());tr.position.copy(d.pos);tr.userData.life=1;
+    scene.add(tr);trails.push(tr);
+  }
+  for(let i2=trails.length-1;i2>=0;i2--){
+    const p=trails[i2];p.userData.life-=dt*.25;p.material.opacity=p.userData.life*.3;
+    if(p.userData.life<=0){scene.remove(p);p.geometry.dispose();p.material.dispose();trails.splice(i2,1);}
+  }
+  for(let i2=impP.length-1;i2>=0;i2--){
+    const p=impP[i2];p.userData.life-=dt*.3;
+    p.position.add(p.userData.v.clone().multiplyScalar(dt));p.userData.v.y-=dt*2;
+    p.material.opacity=Math.max(0,p.userData.life*.4);p.scale.multiplyScalar(1+dt*.3);
+    if(p.userData.life<=0){scene.remove(p);p.geometry.dispose();p.material.dispose();impP.splice(i2,1);}
+  }
+  if(window._ring){window._ring.material.opacity=.4+Math.sin(ts*.003)*.3;window._ring.scale.setScalar(1+Math.sin(ts*.002)*.15);}
+
+  updEvt(S.t);
+  updCam(d);
+  oc.update();
+  updHUD(d);
+  R.render(scene,cam);
+}
+
+/* ── HUD ── */
+const $=id=>document.getElementById(id);
+function updHUD(d){
+  const em=d.phase!=='CRUISE';
+  $('v-alt').textContent=Math.round(d.alt);$('v-alt').className=(d.alt<5000&&em)?'val warning':'val';
+  $('v-spd').textContent=Math.round(d.spd);$('v-spd').className=d.spd>500?'val warning':'val';
+  $('v-hdg').textContent=Math.round(d.hdg);
+  $('v-vs').textContent=Math.round(d.vs);$('v-vs').className=Math.abs(d.vs)>10000?'val warning':'val';
+  $('v-pitch').textContent=(d.pitch/D2R).toFixed(1);
+  $('v-bank').textContent=(d.bank/D2R).toFixed(1);
+  $('v-gload').textContent=d.gLoad.toFixed(1);$('v-gload').className=d.gLoad>2?'val warning':'val';
+  const ut=T0+d.t;const ud=new Date(ut*1000);
+  $('v-utc').textContent=[ud.getUTCHours(),ud.getUTCMinutes(),ud.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+  const cd=new Date((ut+28800)*1000);
+  $('v-cst').textContent=[cd.getUTCHours(),cd.getUTCMinutes(),cd.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+  $('v-lat').textContent=d.lat.toFixed(4);$('v-lon').textContent=d.lon.toFixed(4);
+  const pl=$('phase-label');
+  const clrs={CRUISE:'#44dd88',MANEUVERING:'#ddaa44','INITIAL DIVE':'#ff8800',RECOVERY:'#dddd44','FINAL DIVE':'#ff2222'};
+  pl.textContent=d.phase;pl.style.color=clrs[d.phase]||'#aaa';pl.className=d.phase==='FINAL DIVE'?'warning':'';
+  const rel=Math.max(0,d.t-START_T);
+  $('v-elapsed').textContent=String(Math.floor(rel/60)).padStart(2,'0')+':'+String(Math.floor(rel%60)).padStart(2,'0');
+  $('alt-bar').style.height=Math.max(0,Math.min(100,d.alt/30000*100))+'%';
+  const pct=Math.max(0,(d.t-START_T)/(DUR-START_T)*100);$('timeline-fill').style.width=pct+'%';$('timeline-marker').style.left=pct+'%';
+}
+
+/* ── controls ── */
+function reset(){lastEI=-1;S.userOrbit=false;impP.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});impP.length=0;smP=0;smB=0;smH=100;_lt=-1;
+  impacted=false;AG.visible=false;
+  trails.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});trails.length=0;
+}
+function seekTo(t){
+  S.t=Math.max(0,Math.min(DUR,t));reset();
+  const d=interp(S.t);
+  const off=cam.position.clone().sub(oc.target);
+  oc.target.copy(d.pos);cam.position.copy(d.pos).add(off);
+  prevAircraftPos.copy(d.pos);
+}
+$('btn-play').onclick=()=>{
+  if(S.t>=DUR){
+    S.t=START_T;reset();
+    const d=interp(START_T);prevAircraftPos.copy(d.pos);
+    const hr0=d.hdg*D2R;
+    cam.position.copy(d.pos).add(new THREE.Vector3(-Math.sin(hr0)*12,4,Math.cos(hr0)*12));
+    oc.target.copy(d.pos);
+  }
+  S.playing=true;
+};
+$('btn-pause').onclick=()=>{S.playing=false;};
+['1x','2x','5x','10x'].forEach(l=>{$('btn-'+l).onclick=()=>{S.speed=parseInt(l);document.querySelectorAll('#p-controls .btn-row:first-child .btn').forEach(b=>b.classList.remove('active'));$('btn-'+l).classList.add('active');};});
+$('btn-jump').onclick=()=>{S.t=pts[DI].dt-8;reset();S.playing=true;S.speed=2;const dp=pts[DI].p;cam.position.set(dp.x-20,dp.y+10,dp.z+30);oc.target.copy(dp);prevAircraftPos.copy(dp);};
+$('timeline').onclick=ev=>{const r=$('timeline').getBoundingClientRect();seekTo(START_T+(ev.clientX-r.left)/r.width*(DUR-START_T));};
+
+// Camera mode buttons
+['free','tail','left','right','top','cockpit'].forEach(mode=>{
+  $('cam-'+mode).onclick=()=>{
+    S.cam=mode;S.camActive=true;
+    document.querySelectorAll('.cam-btn').forEach(b=>b.classList.remove('active'));
+    $('cam-'+mode).classList.add('active');
+  };
+});
+
+// Data sources toggle
+$('src-toggle').onclick=()=>{
+  const list=$('src-list');
+  const open=list.style.display!=='none';
+  list.style.display=open?'none':'block';
+  $('src-toggle').innerHTML='DATA FIDELITY 数据真实度 '+(open?'&#9662;':'&#9652;');
+};
+
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);});
+
+/* ================================================================
+   INIT
+   ================================================================ */
+async function init(){
+  const [satResult]=await Promise.allSettled([loadSatTerrain(),loadAircraft()]);
+  if(satResult.status==='rejected'||!satResult.value?.loaded){
+    console.warn('Sat tiles failed, fallback terrain');
+    makeFallbackTerrain();
+  }
+  makeCrashMarker();makeFlightPath();makeAltLabels();
+  scene.add(new THREE.GridHelper(400,40,0x44554433,0x33443322));
+  const tDur=DUR-START_T;
+  $('v-total').textContent=String(Math.floor(tDur/60)).padStart(2,'0')+':'+String(Math.floor(tDur%60)).padStart(2,'0');
+
+  // Timeline event ticks
+  const tlEl=$('timeline');
+  EVT.forEach(e=>{
+    if(e.t<START_T)return;
+    const pct=(e.t-START_T)/(DUR-START_T)*100;
+    const tick=document.createElement('div');
+    tick.className='tl-tick'+(e.t>=388?' tl-impact':'');
+    tick.style.left=pct+'%';
+    const tip=document.createElement('div');
+    tip.className='tl-tip';
+    tip.textContent=e.tl;
+    tick.appendChild(tip);
+    tick.addEventListener('click',ev=>{ev.stopPropagation();seekTo(e.t-1);S.playing=true;});
+    tlEl.appendChild(tick);
+  });
+
+  S.t=START_T;
+  const d0=interp(S.t);
+  prevAircraftPos.copy(d0.pos);
+  const hr0=d0.hdg*D2R;
+  cam.position.copy(d0.pos).add(new THREE.Vector3(-Math.sin(hr0)*12,4,Math.cos(hr0)*12));
+  oc.target.copy(d0.pos);
+  oc.update();
+  document.getElementById('loading').style.display='none';
+  document.getElementById('hud').style.display='block';
+  animate(0);
+}
+init();
+</script>
+</body>
+</html>
