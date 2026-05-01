@@ -16,10 +16,16 @@ canvas{display:block}
 #p-events,#p-source,#src-list,#p-flight,#p-info,#p-controls,#p-title{
   background:transparent!important;border:none!important;backdrop-filter:none!important;
 }
-/* Sharper text shadow (no big dark halo around dense text blocks) */
-.panel,.panel *{text-shadow:0 0 2px rgba(0,0,0,.95),1px 1px 1px rgba(0,0,0,.7)}
+/* Minimal text shadow — just enough lift to read against varied scene.
+   Light single drop so dim/passed text (#554444 etc) stays visible. */
+.panel,.panel *{text-shadow:0 1px 1px rgba(0,0,0,.5)}
 .panel .btn{text-shadow:none}
 .panel #timeline,.panel #event-banner,.panel #alt-bar{text-shadow:none}
+/* Emphasis added only to active/important values — not via heavier shadow,
+   but via brighter colour + slight glow on the truly-changing fields. */
+.val,#phase-label{text-shadow:0 0 4px rgba(0,0,0,.55),0 1px 1px rgba(0,0,0,.7)}
+.val.warning{text-shadow:0 0 6px rgba(255,68,68,.55),0 1px 1px rgba(0,0,0,.7)}
+.evt.active{text-shadow:0 0 5px rgba(255,68,68,.4),0 1px 1px rgba(0,0,0,.6)}
 #hud{position:absolute;inset:0;pointer-events:none;font-size:12px}
 
 #p-title{position:absolute;top:12px;left:50%;transform:translateX(-50%);text-align:center;padding:8px 28px;white-space:nowrap}
