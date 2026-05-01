@@ -9,11 +9,15 @@
 body{overflow:hidden;background:#000;font-family:'Courier New',monospace;color:#c0d8c0}
 canvas{display:block}
 .panel{
-  background:transparent;border:none;border-radius:0;
-  padding:10px 14px;backdrop-filter:none;
+  background:transparent!important;border:none!important;border-radius:0;
+  padding:10px 14px;backdrop-filter:none!important;
 }
-/* Legibility shadow on all HUD text (panels lost their dark backdrop) */
-.panel,.panel *{text-shadow:0 0 4px rgba(0,0,0,.92),0 0 1.5px rgba(0,0,0,1)}
+/* Force transparent on ID-targeted panels (defeat any cache / inherit issue) */
+#p-events,#p-source,#src-list,#p-flight,#p-info,#p-controls,#p-title{
+  background:transparent!important;border:none!important;backdrop-filter:none!important;
+}
+/* Sharper text shadow (no big dark halo around dense text blocks) */
+.panel,.panel *{text-shadow:0 0 2px rgba(0,0,0,.95),1px 1px 1px rgba(0,0,0,.7)}
 .panel .btn{text-shadow:none}
 .panel #timeline,.panel #event-banner,.panel #alt-bar{text-shadow:none}
 #hud{position:absolute;inset:0;pointer-events:none;font-size:12px}
@@ -88,8 +92,8 @@ canvas{display:block}
 /* Per-card placement */
 #card-ap   {top:60px;  left:50%; --tx:-50%; transform:translateX(-50%)}
 #card-fuel {bottom:130px; left:50%; --tx:-50%; transform:translateX(-50%)}
-#card-yoke-L{bottom:130px; left:30%;  --tx:-50%; transform:translateX(-50%)}
-#card-yoke-R{bottom:130px; right:30%; --tx:50%;  transform:translateX(50%)}
+#card-yoke-L{bottom:130px; left:35%;  --tx:-50%; transform:translateX(-50%)}
+#card-yoke-R{bottom:130px; right:35%; --tx:50%;  transform:translateX(50%)}
 #card-dual  {top:30%; left:50%; --tx:-50%; transform:translateX(-50%);font-family:'Courier New',monospace;font-size:13px;font-weight:bold;color:#ff3838;letter-spacing:2px;text-shadow:0 0 8px #ff0000,0 0 14px #ff0000,0 0 4px rgba(0,0,0,1);animation:pulseDual 1s ease-in-out infinite}
 @keyframes pulseDual{0%,100%{transform:translateX(-50%) scale(1);opacity:.85}50%{transform:translateX(-50%) scale(1.1);opacity:1}}
 /* Key-moment flashes */
