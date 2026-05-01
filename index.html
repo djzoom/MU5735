@@ -1128,23 +1128,30 @@ function updApCard(t){
 }
 
 // Mechanical position (both yokes physically linked → identical):
-//   Whl Pos: per FDR Fig 12 envelope (left rotation reaching -90°)
-//   Column tilt: per push profile (smoothstep over T+5..T+21 to ~14°)
+//   Whl Pos per FDR Fig 12: ramps to full-left, then HOLDS — does NOT
+//   return to 0 (FDR shows sustained left input until power loss).
+//   Col Pos: ramps to push, then sudden EXTRA push at the very end
+//   (FDR Fig 12 elevator goes hard-down in the final ~2s).
 function _whlDeg(tF){
-  let d = 0;
-  if      (tF >= 3 && tF < 7)  d = -90 * ((tF - 3) / 4);
-  else if (tF >= 7 && tF < 11) d = -90;
-  else if (tF >= 11 && tF < 20) d = -90 + 60 * ((tF - 11) / 9);
-  else if (tF >= 20)            d = -30 * Math.max(0, 1 - (tF - 20) / 1.5);
-  return d;
+  if      (tF <  3)  return 0;
+  if      (tF <  7)  return -90 * ((tF - 3) / 4);   // ramp 0 → -90°
+  // Held at -90° from T+7 onward — no return-to-centre. Slight relaxation
+  // from -90° to -75° in the recovery window 11..18, then back to -90°
+  // in the final extreme phase.
+  if      (tF < 11)  return -90;
+  if      (tF < 18)  return -90 + 15 * ((tF - 11) / 7);   // -90° → -75°
+  return -90;                                             // back to full left
 }
 function _colPushPx(tF){
-  // Pilot POV: push column forward = wheel translates DOWN. Pull = UP.
-  // Returns vertical translate in SVG px (positive = down = push).
+  // Push the wheel DOWN (forward column input). Smoothstep ramp to ~18px,
+  // then a sharp extra push at T+18 onwards to mimic the FDR-recorded
+  // "final hard push" / elevator-down deflection in the last seconds.
   if (tF < 5) return 0;
-  const p = Math.max(0, Math.min(1, (tF - 5) / 16));
+  const p = Math.max(0, Math.min(1, (tF - 5) / 13));     // ramp over 5..18
   const ease = p * p * (3 - 2 * p);
-  return 18 * ease;
+  let push = 18 * ease;
+  if (tF >= 18) push = 18 + Math.min(8, (tF - 18) * 2.5); // extra hard push
+  return push;
 }
 // Per-pilot FORCE profiles. Strict to NTSB Fig 13 observable patterns:
 //   - Both Local + Foreign forces non-zero throughout the upset
@@ -1156,34 +1163,31 @@ function _colPushPx(tF){
 // We do NOT fabricate opposing-direction moments (those would be visual
 // drama, not faithful to what the public figure actually shows).
 function _capRollForce(tF){
-  // Captain (dominant): sustained leftward roll force matching outcome
+  // Captain (dominant): sustained left roll force throughout (no easing).
   if (tF < 3) return 0;
   if (tF < 7) return -(tF - 3) / 4;
-  if (tF < 11) return -1;
-  if (tF < 20) return -1 + 0.6 * (tF - 11) / 9;
-  return Math.min(0, -0.4 + (tF - 20) * 0.4);
+  return -1;                                  // hold full left until end
 }
 function _capPitchForce(tF){
-  // Captain: sustained forward push (negative = push)
+  // Captain: sustained forward push, with EXTRA "final hard push" at T+18+
+  // matching the FDR-recorded sudden elevator-down at the end.
   if (tF < 5) return 0;
   if (tF < 11) return -(tF - 5) / 6;
-  if (tF < 21) return -1;
-  return -0.5;
+  if (tF < 18) return -1;
+  return -1.25;                               // beyond -1 to convey "all the way"
 }
 function _foRollForce(tF){
-  // F/O: same direction as Captain, smaller magnitude (~50%)
+  // F/O: same direction as Captain, ~50% magnitude, sustained.
   if (tF < 3) return 0;
   if (tF < 7) return -0.5 * (tF - 3) / 4;
-  if (tF < 11) return -0.5;
-  if (tF < 20) return -0.5 + 0.3 * (tF - 11) / 9;
-  return Math.min(0, -0.2 + (tF - 20) * 0.2);
+  return -0.5;
 }
 function _foPitchForce(tF){
-  // F/O: same direction (push), smaller magnitude
+  // F/O: same direction (push), smaller magnitude, also peaks at the end.
   if (tF < 5) return 0;
   if (tF < 11) return -0.55 * (tF - 5) / 6;
-  if (tF < 21) return -0.55;
-  return -0.27;
+  if (tF < 18) return -0.55;
+  return -0.75;                               // smaller final push
 }
 // Render one yoke with shared mechanical state + own (per-pilot) force vectors.
 // Force ARC width / arrow LENGTH scales with force magnitude — that's how the
