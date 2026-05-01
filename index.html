@@ -1037,7 +1037,6 @@ function makeFlightPath(){
   }
 }
 // Build an HTML label DOM element for an ADS-B point.
-// Stored in adsLabels[]; per-frame projection updates its screen position.
 const adsLabels = [];
 function makeAdsLabel(pt){
   const div = document.createElement('div');
@@ -1049,49 +1048,71 @@ function makeAdsLabel(pt){
     '<div class="ads-spd">' + pt.spd + ' kts</div>' +
     '<div class="ads-vs" style="color:' + vsColor + '">' + vsTxt + ' fpm</div>';
   document.getElementById('hud').appendChild(div);
-  return { div: div, pos: pt.p.clone(), yOffset: 1.6 };
+  return { div: div, pos: pt.p.clone(), yOffset: 1.6, t: pt.dt };
 }
-// Per-frame: project each ADS-B label to screen 2D, position its DOM
-// element, scale it by distance (perspective) and hide it when occluded
-// by the aircraft model.
+// Per-frame ADS-B label management:
+//  - Only show labels within ~55u of aircraft (no clutter from far points)
+//  - Smooth fade-out at the show-range edge
+//  - Anti-overlap on screen: closer-to-aircraft label wins
+//  - Active label (timestamp nearest current playback) is emphasised
+//  - Perspective distance scale (close = larger)
 const _adsProj  = new THREE.Vector3();
 const _adsAcPos = new THREE.Vector3();
-const _adsAcProj= new THREE.Vector3();
 function updAdsLabels(){
-  // Aircraft model world position + screen projection (for occlusion test)
   AG.getWorldPosition(_adsAcPos);
-  const camToAc = cam.position.distanceTo(_adsAcPos);
-  _adsAcProj.copy(_adsAcPos).project(cam);
-  // Aircraft on-screen pixel half-radius (rough angular diameter / 2).
-  // Model length ≈ 2.4 units; cam.fov is vertical FOV in deg.
-  const acRadiusPx = (1.5 / camToAc) * innerHeight / (2 * Math.tan(cam.fov * Math.PI / 360));
+  // Pass 1: project + classify each label
+  const states = [];
   for (let i = 0; i < adsLabels.length; i++) {
     const l = adsLabels[i];
+    const acDist = _adsAcPos.distanceTo(l.pos);
+    const camDist = cam.position.distanceTo(l.pos);
     _adsProj.copy(l.pos);
     _adsProj.y += l.yOffset;
-    const camToLabel = cam.position.distanceTo(_adsProj);
     _adsProj.project(cam);
-    // Cull if behind camera or off-screen
-    const off = _adsProj.z > 1 || Math.abs(_adsProj.x) > 1.05 || Math.abs(_adsProj.y) > 1.05;
-    // Occlusion: label is FURTHER than aircraft AND projects within the
-    // aircraft's screen footprint → hide (label sits "behind" the model).
-    let occluded = false;
-    if (!off && camToLabel > camToAc) {
-      const dx = (_adsAcProj.x - _adsProj.x) * innerWidth  / 2;
-      const dy = (_adsAcProj.y - _adsProj.y) * innerHeight / 2;
-      if (dx*dx + dy*dy < acRadiusPx * acRadiusPx) occluded = true;
+    const off = _adsProj.z > 1 || Math.abs(_adsProj.x) > 1.08 || Math.abs(_adsProj.y) > 1.08;
+    const sx = (_adsProj.x + 1) * 0.5 * innerWidth;
+    const sy = (-_adsProj.y + 1) * 0.5 * innerHeight;
+    states.push({ l: l, acDist: acDist, camDist: camDist, sx: sx, sy: sy,
+                  off: off, dt: Math.abs(l.t - S.t), show: false });
+  }
+  // Pass 2: visibility decision — closest-to-aircraft labels win
+  const order = states.slice().sort((a, b) => a.acDist - b.acDist);
+  const shownPts = [];
+  for (let k = 0; k < order.length; k++) {
+    const s = order[k];
+    if (s.off) continue;
+    if (s.acDist > 55) continue;                    // out-of-range hide
+    let conflict = false;                            // anti-overlap on screen
+    for (let j = 0; j < shownPts.length; j++) {
+      const dx = s.sx - shownPts[j].sx;
+      const dy = s.sy - shownPts[j].sy;
+      if (dx*dx + dy*dy < 55*55) { conflict = true; break; }
     }
-    if (off || occluded) {
-      if (l.div.style.display !== 'none') l.div.style.display = 'none';
-    } else {
-      if (l.div.style.display === 'none') l.div.style.display = 'block';
-      const x = (_adsProj.x + 1) * 0.5 * innerWidth;
-      const y = (-_adsProj.y + 1) * 0.5 * innerHeight;
-      // Perspective scale: closer = larger. Reference dist 30u → scale 1.0;
-      // clamped to [0.55, 1.7] so labels stay readable but don't dominate.
-      const scale = Math.max(0.55, Math.min(1.7, 30 / camToLabel));
-      l.div.style.transform = 'translate(-50%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + scale.toFixed(2) + ')';
+    if (conflict) continue;
+    s.show = true;
+    shownPts.push(s);
+  }
+  // Pass 3: find the "active" label — smallest |label.t − current playback t|
+  let active = null;
+  for (let k = 0; k < shownPts.length; k++) {
+    if (!active || shownPts[k].dt < active.dt) active = shownPts[k];
+  }
+  // Pass 4: apply opacity / scale / transform / active class
+  for (let i = 0; i < states.length; i++) {
+    const s = states[i];
+    const l = s.l;
+    if (!s.show) {
+      if (l.div.style.opacity !== '0') l.div.style.opacity = '0';
+      continue;
     }
+    // Smooth fade in 30u..55u edge (full-bright inside 30u)
+    let alpha = s.acDist <= 30 ? 1 : Math.max(0.15, 1 - (s.acDist - 30) / 25);
+    // Perspective scale; reference dist 25u → 1.0×, clamp [0.7..1.4]
+    let scale = Math.max(0.7, Math.min(1.4, 25 / Math.max(s.camDist, 8)));
+    if (s === active) { scale *= 1.2; alpha = Math.min(1, alpha + 0.3); }
+    l.div.style.opacity = alpha.toFixed(2);
+    l.div.style.transform = 'translate(-50%,-50%) translate(' + s.sx.toFixed(1) + 'px,' + s.sy.toFixed(1) + 'px) scale(' + scale.toFixed(2) + ')';
+    l.div.classList.toggle('ads-active', s === active);
   }
 }
 
@@ -1554,24 +1575,45 @@ function updEvt(t){
   evtEls.forEach(el=>{const et=+el.dataset.t;el.className=t>=et+5?'evt passed':t>=et-1?'evt active':'evt';});
 }
 
-/* ── impact ── */
+/* ── impact (explosion → smoke → dissipation) ── */
 const impP=[];let impacted=false;
 const impactPos=g2l(23.32375,111.11231,0);
 function doImpact(){
   if(impacted)return;impacted=true;
-  AG.position.copy(impactPos);
-  AG.position.y=0.15;
-  const finalHr=-87*D2R+Math.PI/2;
-  AG.rotation.order='YZX';
-  AG.rotation.set(0,finalHr,-80*D2R);
-  AG.visible=true;
-  const dg=new THREE.SphereGeometry(.5,8,8);
-  for(let i2=0;i2<20;i2++){
-    const sh=.2+Math.random()*.15;
-    const p=new THREE.Mesh(dg,new THREE.MeshBasicMaterial({color:new THREE.Color(sh,sh*.85,sh*.6),transparent:true,opacity:.5+Math.random()*.3}));
-    p.position.set(impactPos.x,Math.max(impactPos.y,.3),impactPos.z);
-    p.userData.v=new THREE.Vector3((Math.random()-.5)*1.2,Math.random()*1.5+.3,(Math.random()-.5)*1.2);
-    p.userData.life=2+Math.random()*4;p.scale.setScalar(.2+Math.random()*.7);
+  AG.visible=false;                                  // hide aircraft body
+  const sph=new THREE.SphereGeometry(.5,12,10);
+  // Stage 1: bright orange-yellow flash (large, short-lived)
+  for(let i2=0;i2<8;i2++){
+    const m=new THREE.MeshBasicMaterial({color:new THREE.Color(1,.7+Math.random()*.3,.2+Math.random()*.2),transparent:true,opacity:.9});
+    const p=new THREE.Mesh(sph,m);
+    p.position.set(impactPos.x+(Math.random()-.5)*.5,impactPos.y+.4+Math.random()*.4,impactPos.z+(Math.random()-.5)*.5);
+    p.userData.v=new THREE.Vector3((Math.random()-.5)*4,Math.random()*2.5+1,(Math.random()-.5)*4);
+    p.userData.kind='flash';p.userData.life=.5+Math.random()*.3;p.userData.lifeMax=p.userData.life;
+    p.scale.setScalar(.6+Math.random()*.6);
+    scene.add(p);impP.push(p);
+  }
+  // Stage 2: thick dark smoke plume (rising, expanding, slow fade)
+  for(let i2=0;i2<26;i2++){
+    const sh=.12+Math.random()*.18;
+    const m=new THREE.MeshBasicMaterial({color:new THREE.Color(sh,sh,sh),transparent:true,opacity:.0});
+    const p=new THREE.Mesh(sph,m);
+    p.position.set(impactPos.x+(Math.random()-.5)*1.6,impactPos.y+.2+Math.random()*.6,impactPos.z+(Math.random()-.5)*1.6);
+    p.userData.v=new THREE.Vector3((Math.random()-.5)*.7,Math.random()*1.2+.4,(Math.random()-.5)*.7);
+    p.userData.kind='smoke';
+    p.userData.delay=Math.random()*.6;               // staggered emergence
+    p.userData.life=8+Math.random()*5;p.userData.lifeMax=p.userData.life;
+    p.userData.peak=.55+Math.random()*.25;           // peak opacity for this puff
+    p.scale.setScalar(.4+Math.random()*.5);
+    scene.add(p);impP.push(p);
+  }
+  // Stage 3: bright ember sparks (short, fast, small)
+  for(let i2=0;i2<14;i2++){
+    const m=new THREE.MeshBasicMaterial({color:new THREE.Color(1,.5+Math.random()*.4,.1),transparent:true,opacity:1});
+    const p=new THREE.Mesh(sph,m);
+    p.position.set(impactPos.x,impactPos.y+.3,impactPos.z);
+    p.userData.v=new THREE.Vector3((Math.random()-.5)*5,Math.random()*3+1,(Math.random()-.5)*5);
+    p.userData.kind='ember';p.userData.life=.8+Math.random()*.6;p.userData.lifeMax=p.userData.life;
+    p.scale.setScalar(.08+Math.random()*.1);
     scene.add(p);impP.push(p);
   }
 }
@@ -1658,9 +1700,8 @@ function animate(ts){
     }else{
       doImpact();
     }
-  }else{
-    AG.visible=true;
   }
+  // After impact: AG remains hidden; only explosion/smoke particles render.
 
   // Trails during descent
   if(d.phase!=='CRUISE'&&d.alt>5&&Math.random()<.2){
@@ -1672,10 +1713,35 @@ function animate(ts){
     if(p.userData.life<=0){scene.remove(p);p.geometry.dispose();p.material.dispose();trails.splice(i2,1);}
   }
   for(let i2=impP.length-1;i2>=0;i2--){
-    const p=impP[i2];p.userData.life-=dt*.3;
-    p.position.add(p.userData.v.clone().multiplyScalar(dt));p.userData.v.y-=dt*2;
-    p.material.opacity=Math.max(0,p.userData.life*.4);p.scale.multiplyScalar(1+dt*.3);
-    if(p.userData.life<=0){scene.remove(p);p.geometry.dispose();p.material.dispose();impP.splice(i2,1);}
+    const p=impP[i2];const u=p.userData;
+    if(u.kind==='flash'){
+      u.life-=dt;
+      p.position.add(u.v.clone().multiplyScalar(dt));
+      u.v.multiplyScalar(0.92);                     // rapid deceleration
+      const k=Math.max(0,u.life/u.lifeMax);
+      p.material.opacity=k*.95;
+      p.scale.multiplyScalar(1+dt*2.2);             // fast expansion
+    }else if(u.kind==='ember'){
+      u.life-=dt;
+      p.position.add(u.v.clone().multiplyScalar(dt));
+      u.v.y-=dt*4;                                  // gravity
+      u.v.multiplyScalar(0.97);
+      const k=Math.max(0,u.life/u.lifeMax);
+      p.material.opacity=k;
+    }else{                                           // smoke
+      if(u.delay>0){u.delay-=dt;p.material.opacity=0;continue;}
+      u.life-=dt;
+      p.position.add(u.v.clone().multiplyScalar(dt));
+      u.v.y=Math.max(.15,u.v.y-dt*.05);             // drag, but keep rising
+      u.v.x*=0.985;u.v.z*=0.985;
+      const k=u.life/u.lifeMax;                     // 1 → 0
+      // Fade-in (first 12% of life), hold, then fade-out
+      const fadeIn=Math.min(1,(1-k)/0.12);
+      const fadeOut=Math.min(1,k/0.5);
+      p.material.opacity=u.peak*fadeIn*fadeOut;
+      p.scale.multiplyScalar(1+dt*.35);             // slow expand
+    }
+    if(u.life<=0){scene.remove(p);p.geometry.dispose();p.material.dispose();impP.splice(i2,1);}
   }
   if(window._ring){window._ring.material.opacity=.4+Math.sin(ts*.003)*.3;window._ring.scale.setScalar(1+Math.sin(ts*.002)*.15);}
 
