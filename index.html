@@ -157,10 +157,11 @@ canvas{display:block}
   <div id="p-events" class="panel">
     <div class="ehdr">FDR / ADS-B EVENTS 事件时间线</div>
     <div class="evt" data-t="268">14:20:38 Engine fuel CUTOFF 燃油切断</div>
-    <div class="evt" data-t="271">14:20:41 AP OFF + column push 自驾断开+前推</div>
+    <div class="evt" data-t="271">14:20:41 AP OFF + left roll begins 自驾断开+开始左滚</div>
     <div class="evt" data-t="274">14:20:44 Last stable FL291 最后稳定</div>
-    <div class="evt" data-t="278">14:20:48 EXTREME ATT 极端姿态 (FDR)</div>
-    <div class="evt" data-t="285">14:20:55 Ctrl surface limits 操纵面限位</div>
+    <div class="evt" data-t="275">14:20:45 Roll -90° 左翼下沉90°</div>
+    <div class="evt" data-t="279">14:20:49 Inverted 倒扣 (-180°)</div>
+    <div class="evt" data-t="288">14:20:58 Roll -270° 右翼下沉90°</div>
     <div class="evt" data-t="290">14:21:00 Descent 27,025 ft 开始下降</div>
     <div class="evt" data-t="291">14:21:01 FDR stops ~26k ft FDR断电</div>
     <div class="evt" data-t="305">14:21:15 Dive steepens 17,325 ft 俯冲加剧</div>
@@ -181,22 +182,21 @@ canvas{display:block}
       &nbsp; <a href="https://github.com/cathaypacific8747/mu5735" target="_blank">FR24 ADS-B granular</a> &mdash; 27 of 397 pts selected<br>
       &nbsp; <span class="src-note">Flight path and timing are real recorded data.<br>
       &nbsp; 航迹与时间为真实记录数据。</span><br>
-      <b style="color:rgba(255,200,80,.7)">&#9632; DISCLOSED 已披露</b> &mdash; FDR / CAAC / NTSB FOIA<br>
-      &nbsp; Engine fuel cutoff 发动机燃油切断<br>
-      &nbsp; AP-1/AP-2 disconnect 自动驾驶断开<br>
-      &nbsp; Control column pushed fwd 驾驶杆前推<br>
-      &nbsp; Pitch -30°~-40°, Roll &gt;90°~180° (FDR last 20s)<br>
-      &nbsp; Elevator/aileron at deflection limits 操纵面限位<br>
-      &nbsp; Dual input — two pilots fighting 两人争夺操纵<br>
+      <b style="color:rgba(255,200,80,.7)">&#9632; MEASURED 实测</b> &mdash; FDR plot direct trace (NTSB Fig 11/13)<br>
+      &nbsp; FDR window 14:20:38&ndash;14:21:01 (21s):<br>
+      &nbsp; &nbsp; Pitch 俯仰: 0&deg; &rarr; &minus;35&deg; smoothstep monotonic<br>
+      &nbsp; &nbsp; Roll 滚转: 0&deg; &rarr; &minus;180&deg; (T+8s) &rarr; &minus;270&deg; (T+18s)<br>
+      &nbsp; &nbsp; <span class="src-note">Continuous left rotation; no oscillation<br>
+      &nbsp; &nbsp; 单方向左滚至右翼朝下，无振荡</span><br>
+      &nbsp; Eng1/Eng2 Cutoff SW: simultaneous RUN&rarr;CUTOFF<br>
+      &nbsp; AP-1/AP-2 Warn: ON ~3s after cutoff<br>
+      &nbsp; Rudder 方向舵: untouched throughout 全程未动<br>
       &nbsp; FDR power loss ~26,000 ft FDR断电<br>
-      &nbsp; <a href="https://www.ntsb.gov" target="_blank">NTSB FOIA DCA22WA102</a><br><br>
+      &nbsp; <a href="https://www.ntsb.gov" target="_blank">NTSB FOIA DCA22WA102</a> Fig 11/12/13<br><br>
       <b style="color:rgba(255,100,80,.7)">&#9632; ESTIMATED 估算值</b><br>
       &nbsp; Cruise 巡航: +2&deg; AOA, wings level 机翼水平<br>
       &nbsp; &nbsp; <span class="src-note">Stable nominal attitude — no spline-derived jitter<br>
       &nbsp; &nbsp; 稳定标称姿态，无样条切线抖动</span><br>
-      &nbsp; FDR phase 14:20:41-14:21:01: disclosed envelope 已披露包线<br>
-      &nbsp; &nbsp; <span class="src-note">Pitch &minus;35&deg; &plusmn;6&deg; (period ~8s)<br>
-      &nbsp; &nbsp; Bank &plusmn;88&deg; (period ~10s) — matches NTSB envelope</span><br>
       &nbsp; Post-FDR 断电后 — 三轴统一从 3D 速度矢量推导:<br>
       &nbsp; &nbsp; Heading 航向 = atan2(tan.x, &minus;tan.z) (spline track)<br>
       &nbsp; &nbsp; Pitch 俯仰 = asin(tan.y) + AOA(V/S)<br>
@@ -306,7 +306,7 @@ function t2u(t){
   return(i+f)/(N_PTS-1);
 }
 
-let smP=2*D2R,smB=0,smH=100,_lt=-1;
+let smP=2*D2R,smB=0,smH=100,_lt=-1,_wasFDR=false;
 
 function interp(t){
   t=Math.min(DUR,Math.max(0,t));
@@ -333,8 +333,12 @@ function interp(t){
   let tH=a.hdg+dh*f;if(tH<0)tH+=360;if(tH>=360)tH-=360;
 
   // ── ATTITUDE TARGETS (phase-aware, physics-based) ──
-  const inCruise = t < pts[DI].dt - 1;
-  const inFDR    = t >= 271 && t < 291;
+  // FDR window starts at engine cutoff (t=268s) and runs 21s until
+  // FDR power loss (~t=289s). Cruise ends at cutoff. Note the order:
+  // inFDR checked BEFORE inCruise so the FDR-traced trajectory wins
+  // for t ∈ [268, 289) regardless of pts[DI].dt timing.
+  const inFDR    = t >= 268 && t < 289;
+  const inCruise = !inFDR && t < pts[DI].dt - 1;
   let tP, tB, fpa = 0;
 
   // 3D velocity vector (unit) from spline tangent.
@@ -372,15 +376,29 @@ function interp(t){
     tB = 0;
     pos.y = alt * FT2M * SC;
   } else if (inFDR) {
-    // FDR disclosed phase (T-20s → FDR power loss):
-    // pitch -30°~-40°, roll >90°, dual control input.
-    // Use slow oscillations (period ~7-10s) — extreme attitude, not a tremor.
-    const p    = (t - 271) / 20;
-    const ramp = Math.min(1, p / 0.35);
-    // Pitch: ease into −33° dive with ±6° oscillation, period ~8s
-    tP = (2 + ramp * (-35 + 6 * Math.sin(p * 5 * Math.PI - 0.4))) * D2R;
-    // Bank: large slow excursion peaking ±88°, period ~10s
-    tB = ramp * 88 * D2R * Math.sin(p * 4 * Math.PI + 0.3);
+    // FDR-traced from NTSB FOIA DCA22WA102 Fig 11 (basic params)
+    // and Fig 13 (control forces + roll-angle zoom).
+    // T = engine cutoff; AP-1/AP-2 Warn ON at T+3s.
+    //   Pitch: 0° hold to T+5s, smoothstep to -35° at T+21s.
+    //   Roll : 0° hold to T+3s (AP still active until disconnect),
+    //          then continuous left rotation:
+    //          T+3s..T+11s : 0° → -180° (~22.5°/s, AP-off + left aileron)
+    //          T+11s..T+20s: -180° → -270° (~10°/s, slowing rotation)
+    //          T+20s..T+21s: hold -270°
+    //   Heading: unchanged (ADS-B linear interp ≈ 100°).
+    // No oscillation: FDR plot shows smooth monotonic curves, not tremor.
+    const tF = t - 268;
+    // Pitch: delayed onset matching FDR Fig 11
+    const pP = Math.max(0, Math.min(1, (tF - 5) / 16));
+    const easeP = pP * pP * (3 - 2 * pP);
+    tP = easeP * (-35 * D2R);
+    // Roll: piecewise cumulative angle from FDR Fig 13
+    let rollDeg;
+    if      (tF <  3) rollDeg = 0;
+    else if (tF < 11) rollDeg = -180 * ((tF - 3) / 8);
+    else if (tF < 20) rollDeg = -180 - 90 * ((tF - 11) / 9);
+    else              rollDeg = -270;
+    tB = rollDeg * D2R;
     fpa = fpa3D;
   } else {
     // Post-FDR dive / recovery: derive ALL THREE attitude axes from the
@@ -429,10 +447,23 @@ function interp(t){
   if (smH <    0) smH += 360;
   if (smH >= 360) smH -= 360;
 
+  // FDR → post-FDR boundary: wrap cumulative bank to nearest [-π, π]
+  // equivalent so post-FDR smoothing transitions naturally
+  // (e.g. -270° → +90°, then smooth toward spline-derived bank).
+  if (_wasFDR && !inFDR) {
+    while (smB < -Math.PI) smB += 2 * Math.PI;
+    while (smB >  Math.PI) smB -= 2 * Math.PI;
+  }
+  _wasFDR = inFDR;
+
   let gL = 1 + Math.abs(vs) / 30000 * 1.5;
   if (inFDR) {
-    const p = (t - 271) / 20;
-    gL = 1 + Math.min(1, p / 0.35) * Math.abs(1.8 * Math.sin(p * 4 * Math.PI));
+    // FDR Fig 11 Accel Vert: shows ~0.5g during the upset (occupants
+    // experiencing reduced g due to the unloaded dive + roll). Model
+    // a smooth g-load drop from 1g toward ~0.5g, with mild ripple.
+    const tF = t - 268;
+    const p  = Math.max(0, Math.min(1, tF / 21));
+    gL = 1 - 0.5 * (p * p * (3 - 2 * p)) + 0.15 * Math.sin(tF * 1.2);
   }
   let ph='CRUISE';
   if(t>=pts[DI].dt){
@@ -647,11 +678,12 @@ function buildSimple(){
    EVENTS
    ================================================================ */
 const EVT=[
-  {t:268,m:"ENG FUEL CUTOFF 燃油切断",s:"FDR: both engine fuel switches RUN→CUTOFF at FL291 双发燃油开关从运行切至关断",tl:"Fuel cutoff 燃油切断"},
-  {t:271,m:"AP OFF + COLUMN PUSHED 自动驾驶断开+前推",s:"FDR: AP-1 AP-2 OFF, abnormal column input 3s after cutoff 自驾断开+异常操纵",tl:"AP off+push 断开前推"},
+  {t:268,m:"ENG FUEL CUTOFF 燃油切断",s:"FDR Fig 11: both engine fuel switches RUN→CUTOFF at FL291 双发燃油开关同时从运行切至关断",tl:"Fuel cutoff 燃油切断"},
+  {t:271,m:"AP OFF + LEFT ROLL BEGINS 自驾断开+开始左滚",s:"FDR Fig 11: AP-1/AP-2 Warn ON ~3s after cutoff; sustained left aileron input begins 自驾断开+持续左压副翼",tl:"AP off+left roll 断开+左滚"},
   {t:274,m:"LAST STABLE — FL291 最后稳定高度",s:"29,100 ft, 457 kts, heading 100° — all nominal 所有参数正常",tl:"Last stable 稳定"},
-  {t:278,m:"EXTREME ATTITUDE 极端姿态 (FDR)",s:"FDR: pitch -30°~-40°, roll >90°~180°, dual input 两人争夺操纵",tl:"Extreme 极端姿态"},
-  {t:285,m:"CTRL SURFACE LIMITS 操纵面极限 (FDR)",s:"FDR: elevator/aileron at deflection limits, IAS >400 kts 升降舵副翼限位",tl:"Limits 限位"},
+  {t:275,m:"ROLL PASSES -90° 左翼下沉 90°",s:"FDR Fig 13: roll angle through -90° (left wing fully down); pitch ~-2° 左翼朝下90°",tl:"Roll -90° 左90°"},
+  {t:279,m:"INVERTED 倒扣 — ROLL -180°",s:"FDR Fig 13: roll wraps -180°/+180° (aircraft inverted); pitch ~-11° 机身倒扣",tl:"Inverted 倒扣"},
+  {t:288,m:"ROLL -270° 右翼朝下 90°",s:"FDR Fig 13: roll continues to ~+90° displayed (270° cumulative left); pitch ~-34° 右翼朝下90°",tl:"Roll -270° 右90°"},
   {t:290,m:"DESCENT — 27,025 FT 开始下降",s:"ADS-B: V/S -21,696 ft/min — 16s gap since stable 距稳定点16秒",tl:"Descent 下降"},
   {t:291,m:"FDR STOPS ~26,000 FT FDR断电",s:"Engine N2 below generator threshold, electrical power lost 发电机失电",tl:"FDR stop 断电"},
   {t:305,m:"DIVE STEEPENS 俯冲加剧 — 17,325 FT",s:"V/S -30,976 ft/min, heading 91°→123° 航向急变",tl:"Steepen 加剧"},
@@ -839,7 +871,7 @@ function updHUD(d){
 }
 
 /* ── controls ── */
-function reset(){lastEI=-1;S.userOrbit=false;impP.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});impP.length=0;smP=2*D2R;smB=0;smH=100;_lt=-1;
+function reset(){lastEI=-1;S.userOrbit=false;impP.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});impP.length=0;smP=2*D2R;smB=0;smH=100;_lt=-1;_wasFDR=false;
   impacted=false;AG.visible=false;
   trails.forEach(p=>{scene.remove(p);p.geometry.dispose();p.material.dispose();});trails.length=0;
 }

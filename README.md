@@ -39,35 +39,42 @@ Data from the last ~90 seconds of FDR recording before power loss at ~26,000 ft.
 
 | Time (CST) | Event | Source |
 |-----------|-------|--------|
-| 14:20:38 | Engine fuel switches RUN→CUTOFF (both engines) | FDR |
-| 14:20:41 | AP-1/AP-2 disconnect; control column pushed forward | FDR |
-| 14:20:44 | Last stable flight parameters at FL291 | FDR |
-| 14:20:48 | Extreme attitude: pitch −30°~−40°, roll >90°~180° | FDR |
-| 14:20:55 | Elevator/aileron at deflection limits; IAS >400 kts | FDR |
-| 14:21:01 | FDR power loss — engine N2 below generator threshold | FDR |
+| 14:20:38 | Engine 1 & 2 fuel switches RUN→CUTOFF (simultaneous) | FDR Fig 11 |
+| 14:20:41 | AP-1/AP-2 Warn ON (~3s after cutoff) | FDR Fig 11 |
+| 14:20:44 | Last stable flight parameters at FL291 | FDR Fig 11 |
+| 14:20:45 | Roll passes −90° (left wing fully down) | FDR Fig 13 |
+| 14:20:49 | Inverted — roll −180° / +180° wrap | FDR Fig 13 |
+| 14:20:58 | Roll −270° cumulative (right wing fully down) | FDR Fig 13 |
+| 14:21:01 | FDR power loss — engine N2 below generator threshold | FDR Fig 11 |
 
-**FDR phase details (NTSB FOIA):**
-- **Phase 1** (T−90s ~ T−30s): Normal cruise — FL291, ~270 kts IAS, AP-1/AP-2 engaged, pitch/roll ≈ 0°
-- **Phase 2** (T−30s ~ T−15s): Anomaly onset — fuel switches CUTOFF, AP disconnect, control column pushed forward, pitch goes rapidly negative, Ctrl Col Pos shows large-amplitude inputs
-- **Phase 3** (T−15s ~ T−5s): Violent maneuvering — pitch −30°~−40°, roll exceeding 90°~180°, vertical/longitudinal acceleration violent oscillation, dual control input (two pilots fighting for control), elevator/aileron at deflection limits, IAS >350→400+ kts
-- **Phase 4** (T−5s ~ T): Final FDR data — all parameters reach extreme values simultaneously, altitude extremely low, data ends
+#### 2.1 FDR-traced attitude (NTSB Fig 11 / Fig 13) — MEASURED
 
-Where T = FDR stop time (~26,000 ft, 14:21:01 CST).
+Pitch and Roll for the 21-second FDR recording window (T = engine cutoff at 14:20:38 CST to FDR power loss at 14:21:01 CST) are traced **directly** from NTSB DCA22WA102 plots, not estimated:
+
+| Parameter | Source plot | Profile traced from plot |
+|-----------|-------------|--------------------------|
+| Pitch     | Fig 11 — Pitch Angle | Holds 0° to T+5s, smoothstep monotonic to −35° at T+21s (no oscillation) |
+| Roll      | Fig 13 — Roll Angle (zoomed) | Holds 0° to T+3s (AP active until disconnect), then continuous unidirectional left rotation: 0° → −180° at T+11s (8s, ~22.5°/s) → −270° cumulative at T+20s (9s, ~10°/s), held to T+21s. Display wraps at ±180° but physical rotation is monotonic. |
+| Eng1/2 Cutoff SW | Fig 11 | Both switches RUN→CUTOFF at T+0 (simultaneous, manual) |
+| AP-1/AP-2 Warn   | Fig 11 | Both ON at T+3s |
+| Rudder    | Fig 12 | Untouched throughout (input remains at neutral) |
+
+**Key observation from FDR plots:** Pitch and roll are *smooth, monotonic, single-direction* — not the chaotic oscillation suggested by "two pilots fighting for control." The aircraft was rolled deliberately and continuously to the left, accumulating ~270° of rotation while pitch decreased monotonically. Rudder was never used.
 
 **References:**
-- **[NTSB FOIA DCA22WA102](https://data.ntsb.gov/Docket?ProjectID=105683)** — U.S. National Transportation Safety Board, Freedom of Information Act release. Contains FDR parameter plots for the final ~90 seconds of recording.
+- **[NTSB FOIA DCA22WA102](https://data.ntsb.gov/Docket?ProjectID=105683)** — U.S. National Transportation Safety Board, Freedom of Information Act release. Pages 25 (Fig 11 basic parameters), 27 (Fig 12 control surfaces), 28 (Fig 13 control forces + roll-angle zoom).
 - **[CAAC Investigation Progress Reports](http://www.caac.gov.cn/)** — Civil Aviation Administration of China, publicly released investigation updates (中国民航局事故调查进展情况通报)
 - **[Wikimedia Commons: China Eastern Airlines Flight 5735](https://commons.wikimedia.org/wiki/Category:China_Eastern_Airlines_Flight_5735)** — NTSB FDR documents archived
 
 ### 3. Estimated Values 估算值
 
-Attitude is split into three phases. Cruise is held at a stable nominal attitude; the FDR window uses disclosed envelope values; the post-FDR dive is derived from trajectory.
+Cruise is held at a stable nominal attitude; the post-FDR dive is derived from the 3D trajectory tangent. The FDR window itself is traced from the NTSB plots — see §2.1 above (MEASURED, not estimated).
 
 | Phase | Window (CST) | Heading (航向) | Pitch (俯仰角) | Bank (倾斜角) | Notes |
 |-------|--------------|----------------|----------------|---------------|-------|
 | Cruise 巡航 | up to 14:20:39 | ADS-B linear interp | Held at +2° AOA | 0° (wings level) | Visual altitude locked to ADS-B; no spline-derived attitude jitter |
-| FDR disclosed 已披露段 | 14:20:41 – 14:21:01 | ADS-B linear interp | −29°~−41° (−35° + 6° osc, period ~8s) | ±88° (slow oscillation, period ~10s) | Matches NTSB-disclosed envelope (pitch −30°~−40°, roll >90°), modelled at aerodynamically plausible 737-LOC rates |
-| Post-FDR dive 断电后俯冲 | 14:21:01 – impact | **3D track from spline tangent** — atan2(tan.x, −tan.z) | **3D FPA from spline tangent** — asin(tan.y) + AOA from V/S magnitude | **Coordinated turn** — tB = −atan(v · ω / g), where ω is yaw-rate from centered finite-difference of track | All three axes derived from the same 3D velocity vector — nose visually follows the trajectory (no sideslip) |
+| FDR window 14:20:38 – 14:21:01 | (see §2.1 — **MEASURED**, FDR-traced) ||||
+| Post-FDR dive 断电后俯冲 | 14:21:01 – impact | **3D track from spline tangent** — atan2(tan.x, −tan.z) | **3D FPA from spline tangent** — asin(tan.y) + AOA from V/S magnitude | **Coordinated turn** — tB = −atan(v · ω / g), where ω is yaw-rate from centered finite-difference of track | All three axes derived from the same 3D velocity vector — nose visually follows the trajectory (no sideslip). FDR-end roll (cumulative −270°) is wrapped to equivalent +90° at boundary, then smoothly transitions to spline-derived bank |
 
 **Aerodynamic constraints applied across all phases:**
 
@@ -107,11 +114,12 @@ The following are **not publicly available** and cannot be used:
 
 | Time (CST) | Altitude | Event | Data Source |
 |-----------|---------|-------|-------------|
-| 14:20:38 | FL291 | Engine fuel switches RUN→CUTOFF | FDR (NTSB) |
-| 14:20:41 | FL291 | AP-1/AP-2 OFF + control column pushed fwd | FDR (NTSB) |
-| 14:20:44 | FL291 | Last stable flight parameters | FDR (NTSB) |
-| 14:20:48 | FL291 | Extreme attitude — pitch −30°~−40°, roll >90° | FDR (NTSB) |
-| 14:20:55 | ~FL291 | Control surface deflection limits reached | FDR (NTSB) |
+| 14:20:38 | FL291 | Engine 1 & 2 fuel switches RUN→CUTOFF (simultaneous) | FDR Fig 11 |
+| 14:20:41 | FL291 | AP-1/AP-2 Warn ON; sustained left aileron input begins | FDR Fig 11 |
+| 14:20:44 | FL291 | Last stable flight parameters | FDR Fig 11 |
+| 14:20:45 | FL291 | Roll passes −90° (left wing fully down) | FDR Fig 13 |
+| 14:20:49 | FL291 | Inverted — roll wraps −180° / +180° | FDR Fig 13 |
+| 14:20:58 | ~FL291 | Roll −270° cumulative — pitch ~−34° | FDR Fig 13 |
 | 14:21:00 | 27,025 ft | Descent detected — V/S −21,696 ft/min | ADS-B |
 | 14:21:01 | ~26,000 ft | FDR stops — generator power loss | FDR (NTSB) |
 | 14:21:15 | 17,325 ft | Dive steepens — heading 91°→123° | ADS-B |
@@ -128,7 +136,7 @@ The following are **not publicly available** and cannot be used:
 - **Trajectory**: CatmullRom spline (centripetal, open) through 27 ADS-B waypoints
 - **Attitude**: Euler angles (YZX intrinsic order) — heading from ADS-B, pitch/roll from FDR (when available) or estimated from trajectory
 - **Cruise attitude model**: Held at +2° AOA, wings level; visual altitude locked to ADS-B data to suppress spline Y-jitter (no shake along the green cruise line)
-- **FDR attitude model**: During FDR window (t=271–291s), pitch eases into −35° with ±6° oscillation (period ~8s); bank oscillates ±88° (period ~10s) — matches NTSB-disclosed envelope at aerodynamically plausible 737 loss-of-control rates
+- **FDR attitude model (FDR-traced from NTSB Fig 11/13, MEASURED)**: During FDR window (t=268–289s, 21s), pitch follows a smooth monotonic smoothstep 0° → −35°; roll is a continuous unidirectional left rotation reaching cumulative −270° (−180° at T+8s, −270° at T+18s) — traced directly from NTSB plots, not synthesized. Cumulative bank stored as unwrapped radians (Three.js Euler renders any value correctly); wrapped to [−π, π] equivalent at FDR end for smooth post-FDR transition
 - **Post-FDR attitude model (3-axis from velocity vector)**: All three axes derived from the same 3D spline tangent so the nose visually tracks the path. Heading = atan2(tan.x, −tan.z); Pitch = asin(tan.y) + AOA(V/S); Bank = −atan(v · ω / g) where ω is the yaw-rate from a centered finite-difference (±0.6 s) of the track angle, capped at 35°/s for spline plausibility. Final clamps: pitch ∈[−72°,+20°], bank ∈[−65°,+65°]
 - **Smoothing**: Frame-rate-independent exponential low-pass with phase-tuned time constants (τ = 2.5s cruise, 0.7s FDR, 0.6s post-FDR)
 - **Rate limits**: Per-axis aerodynamic clamps on smoothed output — pitch ≤25°/s (30°/s during FDR), roll ≤60°/s (75°/s during FDR), heading ≤4°/s cruise / ≤50°/s dive
