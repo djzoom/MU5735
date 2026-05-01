@@ -16,13 +16,12 @@ canvas{display:block}
 #p-events,#p-source,#src-list,#p-flight,#p-info,#p-controls,#p-title{
   background:transparent!important;border:none!important;backdrop-filter:none!important;
 }
-/* Minimal text shadow — just enough lift to read against varied scene.
-   Light single drop so dim/passed text (#554444 etc) stays visible. */
-.panel,.panel *{text-shadow:0 1px 1px rgba(0,0,0,.5)}
+/* Slightly stronger text shadow for legibility against bright terrain,
+   but not so heavy it eats dim text */
+.panel,.panel *{text-shadow:0 1px 2px rgba(0,0,0,.78),0 0 1px rgba(0,0,0,.95)}
 .panel .btn{text-shadow:none}
 .panel #timeline,.panel #event-banner,.panel #alt-bar{text-shadow:none}
-/* Emphasis added only to active/important values — not via heavier shadow,
-   but via brighter colour + slight glow on the truly-changing fields. */
+/* Emphasis on active/important values (not via shadow — via colour + glow) */
 .val,#phase-label{text-shadow:0 0 4px rgba(0,0,0,.55),0 1px 1px rgba(0,0,0,.7)}
 .val.warning{text-shadow:0 0 6px rgba(255,68,68,.55),0 1px 1px rgba(0,0,0,.7)}
 .evt.active{text-shadow:0 0 5px rgba(255,68,68,.4),0 1px 1px rgba(0,0,0,.6)}
@@ -34,16 +33,16 @@ canvas{display:block}
 #p-title .warn-line{font-size:10px;color:#ff6644;margin-bottom:3px}
 
 #p-flight{position:absolute;top:12px;left:14px;line-height:1.9;min-width:175px}
-.lbl{color:#668866;display:inline-block;width:48px;text-align:right;margin-right:4px}
-.val{color:#c0ffc0;font-weight:bold}
+.lbl{color:#9bd0a3;display:inline-block;width:48px;text-align:right;margin-right:4px}
+.val{color:#daffd6;font-weight:bold}
 #phase-label{font-size:13px;margin-bottom:4px;font-weight:bold}
-.derived{font-size:8px;color:#556;vertical-align:super}
+.derived{font-size:8px;color:#a8b8c8;vertical-align:super}
 
 #p-info{position:absolute;top:12px;right:14px;line-height:1.9;text-align:right;min-width:185px}
 
 #p-alt{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:30px;height:250px;padding:0;overflow:hidden}
 #alt-bar{position:absolute;bottom:0;width:100%;background:linear-gradient(to top,#ff4444,#ffaa00 40%,#00cc66);transition:height .15s}
-#alt-num{position:absolute;top:-18px;left:0;width:100%;text-align:center;font-size:9px;color:#88aa88}
+#alt-num{position:absolute;top:-18px;left:0;width:100%;text-align:center;font-size:9px;color:#aaccaa}
 
 #p-controls{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:auto;padding:10px 22px}
 .btn-row{display:flex;justify-content:center;gap:4px;flex-wrap:wrap;margin-bottom:8px}
@@ -54,7 +53,7 @@ canvas{display:block}
 #timeline{width:min(560px,72vw);height:6px;background:rgba(0,0,0,.5);border:1px solid rgba(180,180,180,.55);border-radius:3px;margin:6px auto;cursor:pointer;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 #timeline-fill{height:100%;background:linear-gradient(90deg,#00cc66,#ff4444);border-radius:3px;width:0}
 #timeline-marker{position:absolute;top:-4px;width:12px;height:12px;background:#ddd;border-radius:50%;transform:translateX(-50%);left:0;z-index:3}
-#time-text{font-size:10px;color:#668866;margin-top:4px}
+#time-text{font-size:10px;color:#a8d4a8;margin-top:4px}
 .tl-tick{position:absolute;top:-6px;width:2px;height:17px;pointer-events:auto;cursor:pointer;z-index:2;transform:translateX(-50%)}
 .tl-tick::after{content:'';position:absolute;top:0;left:0;width:2px;height:17px;background:rgba(255,136,68,.35);border-radius:1px;transition:all .15s}
 .tl-tick:hover::after{background:#ff8844;width:3px;left:-0.5px}
@@ -64,22 +63,22 @@ canvas{display:block}
 .tl-tick.tl-impact:hover::after{background:#ff2222}
 
 #p-events{position:absolute;left:14px;top:215px;font-size:10px;line-height:1.7;max-height:calc(100vh - 330px);overflow-y:auto;pointer-events:none;padding:8px 10px;min-width:250px}
-.ehdr{color:rgba(255,102,68,.5);margin-bottom:4px;font-size:9px;letter-spacing:1px}
-.evt{padding:2px 8px;margin:1px 0;border-left:2px solid #333;color:#556;transition:all .25s}
-.evt.active{border-left-color:#ff4444;color:#ff9966;background:rgba(255,68,68,.08)}
-.evt.passed{border-left-color:#442222;color:#554444}
+.ehdr{color:rgba(255,140,100,.85);margin-bottom:4px;font-size:9px;letter-spacing:1px;font-weight:bold}
+.evt{padding:2px 8px;margin:1px 0;border-left:2px solid rgba(120,160,140,.45);color:#bdd6c2;transition:all .25s}
+.evt.active{border-left-color:#ff4444;color:#ffb088;background:rgba(255,68,68,.18);font-weight:bold;border-left-width:3px}
+.evt.passed{border-left-color:rgba(120,90,80,.5);color:#9eaa9a;opacity:.78}
 
 #event-banner{position:absolute;top:90px;left:50%;transform:translateX(-50%);background:rgba(40,0,0,.8);border:1px solid #ff4444;padding:8px 28px;border-radius:4px;text-align:center;font-size:13px;color:#ff8866;letter-spacing:1px;pointer-events:none;opacity:0;transition:opacity .35s;max-width:80vw;white-space:nowrap}
 #event-banner.visible{opacity:1}
-.esub{font-size:10px;color:rgba(255,136,102,.5);margin-top:4px}
+.esub{font-size:10px;color:rgba(255,170,140,.85);margin-top:4px}
 
 #p-source{position:absolute;bottom:14px;left:14px;pointer-events:auto;padding:4px 10px;font-size:9px;max-width:380px}
-#src-toggle{color:rgba(0,255,136,.4);text-decoration:underline;cursor:pointer;letter-spacing:.5px}
-#src-toggle:hover{color:rgba(0,255,136,.7)}
-#src-list{display:none;margin-top:6px;line-height:1.8;color:rgba(0,255,136,.3)}
-#src-list a{color:rgba(100,200,255,.5);text-decoration:none;border-bottom:1px dotted rgba(100,200,255,.2)}
-#src-list a:hover{color:rgba(100,200,255,.9)}
-.src-note{color:rgba(255,180,100,.3);font-style:italic}
+#src-toggle{color:rgba(120,255,170,.85);text-decoration:underline;cursor:pointer;letter-spacing:.5px;font-weight:bold}
+#src-toggle:hover{color:rgba(180,255,200,1)}
+#src-list{display:none;margin-top:6px;line-height:1.8;color:rgba(190,235,205,.85)}
+#src-list a{color:rgba(140,210,255,.92);text-decoration:none;border-bottom:1px dotted rgba(140,210,255,.5)}
+#src-list a:hover{color:rgba(200,230,255,1)}
+.src-note{color:rgba(255,210,160,.85);font-style:italic}
 
 .warning{color:#ff4444!important;animation:blink .5s infinite}
 @keyframes blink{50%{opacity:.3}}
@@ -96,7 +95,8 @@ canvas{display:block}
 .act-status{font-size:9px;color:#ffe0b0;margin-top:4px;letter-spacing:.5px;font-weight:bold;text-shadow:0 0 5px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,1)}
 .act-svg{display:block;margin:0 auto;filter:drop-shadow(0 0 4px rgba(0,0,0,.85))}
 /* Per-card placement */
-#card-ap   {top:60px;  left:50%; --tx:-50%; transform:translateX(-50%)}
+/* AP indicators sit just under the event banner (banner @ top:90, ~50px tall) */
+#card-ap   {top:148px; left:50%; --tx:-50%; transform:translateX(-50%)}
 #card-fuel {bottom:130px; left:50%; --tx:-50%; transform:translateX(-50%)}
 #card-yoke-L{bottom:130px; left:35%;  --tx:-50%; transform:translateX(-50%)}
 #card-yoke-R{bottom:130px; right:35%; --tx:50%;  transform:translateX(50%)}
@@ -183,7 +183,7 @@ canvas{display:block}
   #p-source{display:none}
   .m-hide{display:none}
   /* Mobile cockpit-action layout: simpler, vertical stack with key schematics */
-  #card-ap   {top:46px}
+  #card-ap   {top:120px}                              /* below the (smaller) mobile event banner */
   #card-ap svg {width:120px;height:38px}
   #card-fuel {bottom:90px}
   #card-fuel svg {width:170px;height:94px}
@@ -1326,20 +1326,20 @@ function updCam(d){
   const right=new THREE.Vector3(Math.cos(hr),0,Math.sin(hr));
 
   if(S.cam==='tail'){
-    const tgt=d.pos.clone().sub(fwd.clone().multiplyScalar(12)).add(new THREE.Vector3(0,4,0));
-    cam.position.lerp(tgt,.04);
-    oc.target.lerp(d.pos,.06);
+    const tgt=d.pos.clone().sub(fwd.clone().multiplyScalar(7)).add(new THREE.Vector3(0,2.5,0));
+    cam.position.lerp(tgt,.05);
+    oc.target.lerp(d.pos,.07);
   }else if(S.cam==='left'){
-    const tgt=d.pos.clone().sub(right.clone().multiplyScalar(14)).add(new THREE.Vector3(0,2,0));
-    cam.position.lerp(tgt,.04);
-    oc.target.lerp(d.pos,.06);
+    const tgt=d.pos.clone().sub(right.clone().multiplyScalar(9)).add(new THREE.Vector3(0,1.6,0));
+    cam.position.lerp(tgt,.05);
+    oc.target.lerp(d.pos,.07);
   }else if(S.cam==='right'){
-    const tgt=d.pos.clone().add(right.clone().multiplyScalar(14)).add(new THREE.Vector3(0,2,0));
-    cam.position.lerp(tgt,.04);
-    oc.target.lerp(d.pos,.06);
+    const tgt=d.pos.clone().add(right.clone().multiplyScalar(9)).add(new THREE.Vector3(0,1.6,0));
+    cam.position.lerp(tgt,.05);
+    oc.target.lerp(d.pos,.07);
   }else if(S.cam==='top'){
-    cam.position.lerp(d.pos.clone().add(new THREE.Vector3(0,55,.1)),.04);
-    oc.target.lerp(d.pos,.06);
+    cam.position.lerp(d.pos.clone().add(new THREE.Vector3(0,32,.1)),.05);
+    oc.target.lerp(d.pos,.07);
   }else if(S.cam==='cockpit'){
     AG.visible=false;
     const fw2=new THREE.Vector3(Math.sin(hr),-Math.sin(d.pitch),-Math.cos(hr)).normalize();
@@ -1447,7 +1447,7 @@ $('btn-play').onclick=()=>{
     S.t=START_T;reset();
     const d=interp(START_T);prevAircraftPos.copy(d.pos);
     const hr0=d.hdg*D2R;
-    cam.position.copy(d.pos).add(new THREE.Vector3(-Math.sin(hr0)*12,4,Math.cos(hr0)*12));
+    cam.position.copy(d.pos).add(new THREE.Vector3(-Math.sin(hr0)*7,2.5,Math.cos(hr0)*7));
     oc.target.copy(d.pos);
   }
   S.playing=true;
@@ -1515,7 +1515,7 @@ async function init(){
   const d0=interp(S.t);
   prevAircraftPos.copy(d0.pos);
   const hr0=d0.hdg*D2R;
-  cam.position.copy(d0.pos).add(new THREE.Vector3(-Math.sin(hr0)*12,4,Math.cos(hr0)*12));
+  cam.position.copy(d0.pos).add(new THREE.Vector3(-Math.sin(hr0)*7,2.5,Math.cos(hr0)*7));
   oc.target.copy(d0.pos);
   oc.update();
   document.getElementById('loading').style.display='none';
