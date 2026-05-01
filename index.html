@@ -1280,9 +1280,11 @@ function _foPitchForce(tF){
 // Captain-vs-F/O magnitude difference becomes visible (the inconsistency).
 function _updYoke(card, tiltG, rotG, statusEl, rollArc, rollTip, pitchArc, pitchTip,
                   tF, whlDeg, pushPx, rollForce, pitchForce, sideClass){
-  // Keep the yoke shown through FDR window AND a few seconds past power loss
-  // so the extreme position stays on screen while attitude is still extreme.
-  const visible = tF >= 1 && tF <= 28;
+  // Yoke is FDR-only data: shown ONLY while FDR is recording input.
+  //   T+0  : engine cutoff (FDR start of upset)
+  //   T+22 : FDR power loss → no further input data, hide
+  // No speculation past FDR end. (User: "不要加戏，只还原真相")
+  const visible = tF >= 1 && tF <= 22;
   setCard(card, visible);
   if(!visible) return;
   // Mechanical position (identical on both yokes — physically linked):
@@ -1353,7 +1355,8 @@ function updYokeCards(t){
            tF, whlDeg, pushPx, fR, fP, 'fo');
   // Central badge: DUAL INPUT only (no fabricated FIGHTING upgrade — opposing
   // direction moments are not clearly visible in the public NTSB figure).
-  setCard(act.dualCard, tF >= 3 && tF <= 28);
+  // Visible only while FDR records dual-input force (T+3..T+22).
+  setCard(act.dualCard, tF >= 3 && tF <= 22);
 }
 
 function updActions(t){
