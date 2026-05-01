@@ -189,6 +189,7 @@ canvas{display:block}
 .surf-bar.dn{fill:#ff5544}        /* trailing edge down = negative */
 .surf-bar.flash{animation:blink .35s infinite}
 .surf-stat{fill:#ffd4a8;font-size:7.5px;font-family:'Courier New',monospace;font-weight:bold}
+.surf-cause{fill:#ff8866;font-size:6.5px;font-family:'Courier New',monospace;font-weight:bold;transition:opacity .25s}
 /* Per-pilot force arrows (independent of mechanical position) */
 .yk-force{fill:none;stroke-width:2;stroke-linecap:round;opacity:0;transition:opacity .3s,stroke .3s}
 .yk-force.show{opacity:.95}
@@ -373,6 +374,8 @@ canvas{display:block}
         <line class="surf-zero" x1="220" y1="22" x2="220" y2="34"/>
         <rect id="surf-elev" class="surf-bar dn" x="220" y="25" width="0" height="6"/>
         <text id="surf-elev-val" x="258" y="30" class="surf-val">0°</text>
+        <!-- Inferred-cause callout: appears when elevator goes extreme down at T+18+ -->
+        <text id="surf-elev-cause" x="220" y="20" text-anchor="middle" class="surf-cause" style="opacity:0">← 推杆 PUSH ↓</text>
         <!-- Rudder bar (always 0, greyed — key evidence) -->
         <text x="155" y="46" class="surf-lbl" style="fill:#888">RUD</text>
         <rect class="surf-bar-bg-grey" x="190" y="40" width="60" height="8" rx="1"/>
@@ -1202,6 +1205,7 @@ function actInit(){
   act.surfAilLVal= document.getElementById('surf-ail-L-val');
   act.surfAilRVal= document.getElementById('surf-ail-R-val');
   act.surfElevVal= document.getElementById('surf-elev-val');
+  act.surfElevCause = document.getElementById('surf-elev-cause');
   act.surfStatus = document.getElementById('surf-status');
 }
 function flashEl(el, cls){
@@ -1486,13 +1490,16 @@ function updSurfaceCard(t){
   _setSurfBar(act.surfAilL, act.surfAilLVal, ailL, 40, 20, 78);
   _setSurfBar(act.surfAilR, act.surfAilRVal, ailR, 40, 20, 78);
   _setSurfBar(act.surfElev, act.surfElevVal, elev, 30, 25, 220);
-  // Flash elevator at the sudden final deflection (T+18+ phase)
-  act.surfElev.classList.toggle('flash', tF >= 18 && elev < -15);
+  // Flash elevator at the sudden final deflection (T+18+ phase) and reveal
+  // the "← 推杆 PUSH ↓" callout that explicitly links elev-down to column push.
+  const elevExtreme = tF >= 18 && elev < -15;
+  act.surfElev.classList.toggle('flash', elevExtreme);
+  if (act.surfElevCause) act.surfElevCause.style.opacity = elevExtreme ? '1' : '0';
   let s, c = '#ffd4a8';
   if      (tF < 3)  { s = 'AP ENGAGED · all surfaces neutral 全面中立'; c = '#9bd09b'; }
   else if (tF < 7)  { s = 'AILERON ramping 副翼建立中'; c = '#ffaa44'; }
   else if (tF < 18) { s = 'AIL ±15° SUSTAINED · ELEV ~0° 副翼持续偏'; c = '#ff8844'; }
-  else              { s = '★ ELEV SUDDEN DOWN 末段升降舵急下偏 ★'; c = '#ff3838'; }
+  else              { s = '★ ELEV SUDDEN DOWN ← 推杆到底 COLUMN PUSHED HARD ★'; c = '#ff3838'; }
   act.surfStatus.textContent = s;
   act.surfStatus.style.fill = c;
 }
