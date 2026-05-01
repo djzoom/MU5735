@@ -175,6 +175,9 @@ canvas{display:block}
 .yk-track{stroke:rgba(180,180,180,.4);stroke-width:.6;stroke-dasharray:2 2}
 .yk-neutral{stroke:rgba(160,255,180,.7);stroke-width:1.4;stroke-linecap:round}
 .kbd{display:inline-block;padding:1px 6px;background:rgba(0,0,0,.6);border:1px solid rgba(0,255,136,.6);border-radius:3px;color:#cdf2d6;font:bold 9px 'Courier New',monospace;margin:0 2px;text-shadow:none}
+/* Cockpit FPV frame overlay — windshield + dashboard + A-pillars */
+#cockpit-frame{position:absolute;inset:0;pointer-events:none;z-index:5;display:none}
+#cockpit-frame svg{width:100%;height:100%;display:block}
 /* Control-surface deflection bars */
 .surf-hdr{fill:#ffb088;font-size:8px;font-family:'Courier New',monospace;font-weight:bold;letter-spacing:.8px}
 .surf-lbl{fill:#cdf2d6;font-size:7px;font-family:'Courier New',monospace;font-weight:bold}
@@ -573,6 +576,26 @@ canvas{display:block}
     </div>
   </div>
   <div id="event-banner"><span id="eb-msg"></span><div class="esub" id="eb-sub"></div></div>
+  <!-- Cockpit FPV frame overlay (visible only when in cockpit camera mode) -->
+  <div id="cockpit-frame">
+    <svg viewBox="0 0 100 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Bottom dashboard / glareshield (concave-up arch) -->
+      <path d="M 0,60 L 0,42 Q 25,37 50,37 Q 75,37 100,42 L 100,60 Z"
+            fill="rgba(12,12,15,.82)" stroke="rgba(80,80,85,.55)" stroke-width=".15"/>
+      <!-- Subtle reflection line on dashboard top edge -->
+      <path d="M 0,42 Q 25,37 50,37 Q 75,37 100,42"
+            fill="none" stroke="rgba(180,200,220,.3)" stroke-width=".2"/>
+      <!-- Top windshield frame (concave-down) -->
+      <path d="M 0,0 L 0,9 Q 25,11 50,11 Q 75,11 100,9 L 100,0 Z"
+            fill="rgba(12,12,15,.7)"/>
+      <!-- Left A-pillar -->
+      <path d="M 0,0 L 7,0 Q 5,30 7,60 L 0,60 Z" fill="rgba(12,12,15,.7)"/>
+      <!-- Right A-pillar -->
+      <path d="M 100,0 L 93,0 Q 95,30 93,60 L 100,60 Z" fill="rgba(12,12,15,.7)"/>
+      <!-- Centre windshield divider post (subtle) -->
+      <rect x="49.7" y="11" width=".6" height="26" fill="rgba(60,60,65,.4)"/>
+    </svg>
+  </div>
   <div id="p-source" class="panel">
     <span id="src-toggle">DATA FIDELITY 数据真实度 &#9662;</span>
     <div id="src-list">
@@ -1597,12 +1620,35 @@ function updCam(d){
     cam.position.lerp(d.pos.clone().add(new THREE.Vector3(0,32,.1)),.05);
     oc.target.lerp(d.pos,.07);
   }else if(S.cam==='cockpit'){
+    // True cockpit-interior FPV: camera sits inside the aircraft model
+    // and inherits the aircraft's full 3D orientation (yaw + pitch + BANK),
+    // so the horizon visibly tilts when the aircraft rolls.
     AG.visible=false;
-    const fw2=new THREE.Vector3(Math.sin(hr),-Math.sin(d.pitch),-Math.cos(hr)).normalize();
-    const cp2=d.pos.clone().add(fw2.clone().multiplyScalar(.7));cp2.y+=.08;
-    cam.position.lerp(cp2,.12);
-    oc.target.lerp(cp2.clone().add(fw2.clone().multiplyScalar(30)),.12);
+    AG.updateMatrixWorld();
+    const nose = new THREE.Vector3(1,0,0).applyQuaternion(AG.quaternion);
+    const upB  = new THREE.Vector3(0,1,0).applyQuaternion(AG.quaternion);
+    // Pilot eye position: ~0.8 units forward of CG (cockpit station), +0.05 up.
+    const cp = d.pos.clone()
+      .add(nose.clone().multiplyScalar(0.8))
+      .add(upB.clone().multiplyScalar(0.05));
+    cam.position.lerp(cp, 0.45);
+    oc.target.lerp(cp.clone().add(nose.clone().multiplyScalar(50)), 0.45);
+    cam.up.lerp(upB, 0.30);
   }
+  // Smooth FOV: wide-angle ~human-eye (~115° horizontal at 16:9) for cockpit
+  // FPV — feels natural through a windshield. Slightly narrower on portrait
+  // mobile to avoid extreme distortion. Default 55° for outside views.
+  const isPortrait = innerHeight > innerWidth;
+  const targetFov = S.cam === 'cockpit'
+    ? (isPortrait ? 68 : 78)
+    : 55;
+  if (Math.abs(cam.fov - targetFov) > 0.05) {
+    cam.fov += (targetFov - cam.fov) * 0.12;
+    cam.updateProjectionMatrix();
+  }
+  // Toggle cockpit frame overlay
+  const cf = document.getElementById('cockpit-frame');
+  if (cf) cf.style.display = S.cam === 'cockpit' ? 'block' : 'none';
 }
 
 /* ================================================================
