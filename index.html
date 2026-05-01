@@ -55,7 +55,7 @@ canvas{display:block}
 .evt.active{border-left-color:#ff4444;color:#ff9966;background:rgba(255,68,68,.08)}
 .evt.passed{border-left-color:#442222;color:#554444}
 
-#event-banner{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);background:rgba(40,0,0,.8);border:1px solid #ff4444;padding:14px 36px;border-radius:5px;text-align:center;font-size:15px;color:#ff8866;letter-spacing:1px;pointer-events:none;opacity:0;transition:opacity .35s;max-width:80vw}
+#event-banner{position:absolute;top:90px;left:50%;transform:translateX(-50%);background:rgba(40,0,0,.8);border:1px solid #ff4444;padding:8px 28px;border-radius:4px;text-align:center;font-size:13px;color:#ff8866;letter-spacing:1px;pointer-events:none;opacity:0;transition:opacity .35s;max-width:80vw;white-space:nowrap}
 #event-banner.visible{opacity:1}
 .esub{font-size:10px;color:rgba(255,136,102,.5);margin-top:4px}
 
@@ -248,7 +248,7 @@ const DI=10;
    getPoint(i/(N-1)) == control point i exactly.
    Scalar data (alt, spd, vs, hdg) interpolated linearly from data.
    ================================================================ */
-const curve=new THREE.CatmullRomCurve3(pts.map(p=>p.p.clone()),'centripetal');
+const curve=new THREE.CatmullRomCurve3(pts.map(p=>p.p.clone()),false,'centripetal');
 const N_PTS=pts.length;
 
 function t2u(t){
