@@ -609,9 +609,9 @@ canvas{display:block}
       &nbsp; <span class="src-note">Flight path and timing are real recorded data.<br>
       &nbsp; 航迹与时间为真实记录数据。</span><br>
       <b style="color:rgba(255,200,80,.7)">&#9632; MEASURED 实测</b> &mdash; FDR plot direct trace (NTSB Fig 11/13)<br>
-      &nbsp; FDR window 14:20:38&ndash;14:21:01 (21s):<br>
+      &nbsp; FDR-traced phase 14:20:38&ndash;14:20:59 (T+0..T+21s):<br>
       &nbsp; &nbsp; Pitch 俯仰: 0&deg; &rarr; &minus;35&deg; smoothstep monotonic<br>
-      &nbsp; &nbsp; Roll 滚转: 0&deg; &rarr; &minus;180&deg; (T+8s) &rarr; &minus;270&deg; (T+18s)<br>
+      &nbsp; &nbsp; Roll 滚转: 0&deg; &rarr; &minus;180&deg; (T+11s) &rarr; &minus;270&deg; (T+20s)<br>
       &nbsp; &nbsp; <span class="src-note">Continuous left rotation; no oscillation<br>
       &nbsp; &nbsp; 单方向左滚至右翼朝下，无振荡</span><br>
       &nbsp; Eng1/Eng2 Cutoff SW: simultaneous RUN&rarr;CUTOFF<br>
@@ -1147,7 +1147,6 @@ async function loadAircraft(){
     const m=gltf.scene;
     const box=new THREE.Box3().setFromObject(m);
     const sz=box.getSize(new THREE.Vector3());
-    console.log('B738 bbox:',sz.x.toFixed(1),sz.y.toFixed(1),sz.z.toFixed(1));
     // After GLB internal transforms (Y_UP + per-node R_z): nose at -Z, fin at +Y
     // R_y(-π/2) rotates nose from -Z to +X (the heading formula's forward axis)
     m.rotation.y = -Math.PI/2;

@@ -49,7 +49,7 @@ Data from the last ~90 seconds of FDR recording before power loss at ~26,000 ft.
 
 #### 2.1 FDR-traced attitude (NTSB Fig 11 / Fig 13) — MEASURED
 
-Pitch and Roll for the 21-second FDR recording window (T = engine cutoff at 14:20:38 CST to FDR power loss at 14:21:01 CST) are traced **directly** from NTSB DCA22WA102 plots, not estimated:
+Pitch and Roll for the FDR-traced 21-second window (T = engine cutoff 14:20:38 CST → 14:20:59 CST; the FDR recording itself extends ~2 s further to power loss at 14:21:01) are traced **directly** from NTSB DCA22WA102 plots, not estimated:
 
 | Parameter | Source plot | Profile traced from plot |
 |-----------|-------------|--------------------------|
@@ -72,9 +72,9 @@ Cruise is held at a stable nominal attitude; the post-FDR dive is derived from t
 
 | Phase | Window (CST) | Heading (航向) | Pitch (俯仰角) | Bank (倾斜角) | Notes |
 |-------|--------------|----------------|----------------|---------------|-------|
-| Cruise 巡航 | up to 14:20:39 | ADS-B linear interp | Held at +2° AOA | 0° (wings level) | Visual altitude locked to ADS-B; no spline-derived attitude jitter |
-| FDR window 14:20:38 – 14:21:01 | (see §2.1 — **MEASURED**, FDR-traced) ||||
-| Post-FDR dive 断电后俯冲 | 14:21:01 – impact | **3D track from spline tangent** — atan2(tan.x, −tan.z) | **3D FPA from spline tangent** — asin(tan.y) + AOA from V/S magnitude | **Coordinated turn** — tB = −atan(v · ω / g), where ω is yaw-rate from centered finite-difference of track | All three axes derived from the same 3D velocity vector — nose visually follows the trajectory (no sideslip). FDR-end roll (cumulative −270°) is wrapped to equivalent +90° at boundary, then smoothly transitions to spline-derived bank |
+| Cruise 巡航 | up to 14:20:38 | ADS-B linear interp | Held at +2° AOA | 0° (wings level) | Visual altitude locked to ADS-B; no spline-derived attitude jitter |
+| FDR-traced phase | 14:20:38 – 14:20:59 (21 s) | (see §2.1 — **MEASURED**, FDR-traced) ||||
+| Post-FDR dive 断电后俯冲 | 14:20:59 – impact | **3D track from spline tangent** — atan2(tan.x, −tan.z) | **3D FPA from spline tangent** — asin(tan.y) + AOA from V/S magnitude | **Coordinated turn** — tB = −atan(v · ω / g), where ω is yaw-rate from centered finite-difference of track | All three axes derived from the same 3D velocity vector — nose visually follows the trajectory (no sideslip). FDR-end roll (cumulative −270°) is wrapped to equivalent +90° at boundary, then smoothly transitions to spline-derived bank |
 
 **Aerodynamic constraints applied across all phases:**
 
@@ -136,7 +136,7 @@ The following are **not publicly available** and cannot be used:
 - **Trajectory**: CatmullRom spline (centripetal, open) through 27 ADS-B waypoints
 - **Attitude**: Euler angles (YZX intrinsic order) — heading from ADS-B, pitch/roll from FDR (when available) or estimated from trajectory
 - **Cruise attitude model**: Held at +2° AOA, wings level; visual altitude locked to ADS-B data to suppress spline Y-jitter (no shake along the green cruise line)
-- **FDR attitude model (FDR-traced from NTSB Fig 11/13, MEASURED)**: During FDR window (t=268–289s, 21s), pitch follows a smooth monotonic smoothstep 0° → −35°; roll is a continuous unidirectional left rotation reaching cumulative −270° (−180° at T+8s, −270° at T+18s) — traced directly from NTSB plots, not synthesized. Cumulative bank stored as unwrapped radians (Three.js Euler renders any value correctly); wrapped to [−π, π] equivalent at FDR end for smooth post-FDR transition
+- **FDR attitude model (FDR-traced from NTSB Fig 11/13, MEASURED)**: During FDR-traced window (t=268–289 s, 21 s), pitch follows a smooth monotonic smoothstep — held at 0° to T+5 s, then 0° → −35° by T+21 s; roll is a continuous unidirectional left rotation — held at 0° to T+3 s (AP still active), then 0° → −180° by T+11 s (~22.5°/s) → −270° by T+20 s (~10°/s), held to T+21 s. Traced directly from NTSB plots, not synthesized. Cumulative bank stored as unwrapped radians (Three.js Euler renders any value correctly); wrapped to [−π, π] equivalent at FDR end for smooth post-FDR transition
 - **Post-FDR attitude model (3-axis from velocity vector)**: All three axes derived from the same 3D spline tangent so the nose visually tracks the path. Heading = atan2(tan.x, −tan.z); Pitch = asin(tan.y) + AOA(V/S); Bank = −atan(v · ω / g) where ω is the yaw-rate from a centered finite-difference (±0.6 s) of the track angle, capped at 35°/s for spline plausibility. Final clamps: pitch ∈[−72°,+20°], bank ∈[−65°,+65°]
 - **Smoothing**: Frame-rate-independent exponential low-pass with phase-tuned time constants (τ = 2.5s cruise, 0.7s FDR, 0.6s post-FDR)
 - **Rate limits**: Per-axis aerodynamic clamps on smoothed output — pitch ≤25°/s (30°/s during FDR), roll ≤60°/s (75°/s during FDR), heading ≤4°/s cruise / ≤50°/s dive
@@ -147,11 +147,33 @@ The following are **not publicly available** and cannot be used:
 
 Open `index.html` in any modern browser. No build step, no server — all dependencies load from CDN (jsdelivr).
 
+For local development, serve the directory over a static HTTP server (the GLTF model and texture tiles need same-origin or CORS):
+
+```bash
+python3 -m http.server 8000
+# then open http://localhost:8000/
+```
+
 Controls:
+- **Space** — play / pause
 - **Drag** — orbit camera
 - **Scroll / pinch** — zoom
 - **Timeline bar** — click to seek
-- **Camera modes** — Tail / Free / Left / Right / Top / FPV (first-person view)
+- **Camera modes** — Tail / Free / Left / Right / Top
+- **Speed** — 0.5× / 1× / 2× / 4× / 8×
+- **Next event** — jump to next timeline marker, then pause
+
+## Project Structure
+
+```
+MU5735/
+├── index.html             # Single-file app (HTML + CSS + JS + SVG)
+├── b738.glb               # Boeing 737-800 GLTF model
+├── README.md              # This file
+├── LICENSE                # MIT
+└── .github/workflows/
+    └── pages.yml          # GitHub Pages auto-deploy on push to main
+```
 
 ## References
 
