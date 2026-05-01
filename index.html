@@ -69,6 +69,24 @@ canvas{display:block}
 
 .warning{color:#ff4444!important;animation:blink .5s infinite}
 @keyframes blink{50%{opacity:.3}}
+
+/* Cockpit interactions overlay */
+#p-cockpit{position:absolute;right:60px;top:215px;width:300px;display:none;background:rgba(0,0,0,.55);border:1px solid rgba(0,255,136,.22);border-radius:4px;padding:8px 10px;backdrop-filter:blur(6px)}
+#p-cockpit.show{display:block}
+#p-cockpit-hdr{font-size:9px;color:rgba(0,255,136,.6);letter-spacing:1.5px;margin-bottom:4px;text-align:center}
+#p-cockpit svg{width:100%;height:auto;display:block}
+.cpt-stk{stroke:rgba(0,255,136,.55);fill:none;stroke-width:1}
+.cpt-fl{fill:rgba(0,255,136,.08)}
+.cpt-lbl{fill:rgba(0,255,136,.65);font-size:8px;font-family:'Courier New',monospace}
+.cpt-tt{fill:rgba(255,170,80,.75);font-size:9px;font-family:'Courier New',monospace;font-weight:bold}
+.cpt-active{stroke:#ff8844;stroke-width:2.2}
+.cpt-fl-active{fill:rgba(255,136,68,.32)}
+.cpt-grey{stroke:rgba(140,140,140,.35);fill:rgba(140,140,140,.08)}
+.cpt-grey-lbl{fill:rgba(140,140,140,.45)}
+.cpt-warn{fill:#ff4444}
+.cpt-ok{fill:#00cc66}
+.cpt-blink{animation:blink .55s infinite}
+
 #loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#668;font-size:13px;text-align:center}
 
 @media(max-width:768px){
@@ -89,6 +107,7 @@ canvas{display:block}
   #p-alt{display:none}
   #p-events{display:none}
   #p-source{display:none}
+  #p-cockpit{display:none!important}
   .m-hide{display:none}
 
   #p-controls{padding:6px 8px;bottom:4px}
@@ -150,6 +169,8 @@ canvas{display:block}
       <button class="btn cam-btn" id="cam-right">R</button>
       <button class="btn cam-btn" id="cam-top">Top</button>
       <button class="btn cam-btn" id="cam-cockpit">FPV</button>
+      <div class="sep"></div>
+      <button class="btn" id="btn-pedestal" title="Show cockpit interactions panel 显示座舱交互面板">&#9881; Cockpit</button>
     </div>
     <div id="timeline"><div id="timeline-fill"></div><div id="timeline-marker"></div></div>
     <div id="time-text"><span id="v-elapsed">00:00.000</span> / <span id="v-total">--:--</span> &ensp;|&ensp; <span style="color:#668866">CST 北京</span> <span class="val" id="v-cst-tl" style="color:#c0ffc0;font-weight:bold">14:20:38.000</span><span class="m-hide"> &ensp;|&ensp; Orbit: drag &ensp; Zoom: scroll &ensp; Seek: click bar</span></div>
@@ -171,6 +192,79 @@ canvas{display:block}
     <div class="evt" data-t="372">14:22:22 2nd dive begins 二次俯冲</div>
     <div class="evt" data-t="386">14:22:36 Last ADS-B 3,225 ft 最后信号</div>
     <div class="evt" data-t="388.5">14:22:38 IMPACT 撞击</div>
+  </div>
+  <div id="p-cockpit">
+    <div id="p-cockpit-hdr">COCKPIT INTERACTIONS &middot; 操作交互</div>
+    <svg viewBox="0 0 360 250" xmlns="http://www.w3.org/2000/svg">
+      <!-- Glareshield + AP warning lights -->
+      <rect x="40" y="6" width="280" height="22" rx="3" class="cpt-fl cpt-stk"/>
+      <text x="180" y="20" text-anchor="middle" class="cpt-lbl">GLARESHIELD &middot; MCP</text>
+      <circle id="cpt-ap1" cx="116" cy="17" r="4" class="cpt-ok"/>
+      <text x="116" y="36" text-anchor="middle" class="cpt-lbl" style="font-size:7px">AP1</text>
+      <circle id="cpt-ap2" cx="244" cy="17" r="4" class="cpt-ok"/>
+      <text x="244" y="36" text-anchor="middle" class="cpt-lbl" style="font-size:7px">AP2</text>
+
+      <!-- Mechanical column linkage between yokes (passes through pedestal) -->
+      <line id="cpt-col-link" x1="106" y1="100" x2="254" y2="100" class="cpt-stk" stroke-dasharray="4 3"/>
+
+      <!-- Captain yoke (left) — rotation = control wheel position -->
+      <g id="cpt-yoke-L" transform="translate(80,100)">
+        <circle r="24" class="cpt-fl cpt-stk"/>
+        <line x1="-22" y1="0" x2="22" y2="0" class="cpt-stk" stroke-width="2"/>
+        <line x1="0" y1="-22" x2="0" y2="-12" class="cpt-stk" stroke-width="2.5"/>
+        <circle cx="0" cy="0" r="3" class="cpt-fl cpt-stk"/>
+      </g>
+      <text x="80" y="138" text-anchor="middle" class="cpt-lbl">YOKE &middot; CAPT</text>
+      <text id="cpt-whl-val" x="80" y="148" text-anchor="middle" class="cpt-lbl" style="font-size:7px;fill:rgba(255,170,80,.6)">0&deg;</text>
+
+      <!-- F/O yoke (right) -->
+      <g id="cpt-yoke-R" transform="translate(280,100)">
+        <circle r="24" class="cpt-fl cpt-stk"/>
+        <line x1="-22" y1="0" x2="22" y2="0" class="cpt-stk" stroke-width="2"/>
+        <line x1="0" y1="-22" x2="0" y2="-12" class="cpt-stk" stroke-width="2.5"/>
+        <circle cx="0" cy="0" r="3" class="cpt-fl cpt-stk"/>
+      </g>
+      <text x="280" y="138" text-anchor="middle" class="cpt-lbl">YOKE &middot; F/O</text>
+
+      <!-- Column position indicator (push state) -->
+      <rect id="cpt-col-bar" x="160" y="78" width="40" height="6" rx="2" class="cpt-fl cpt-stk"/>
+      <text x="180" y="74" text-anchor="middle" class="cpt-lbl" style="font-size:7px">COLUMN PUSH</text>
+
+      <!-- Pedestal -->
+      <rect x="140" y="158" width="80" height="64" rx="3" class="cpt-fl cpt-stk"/>
+      <text x="180" y="155" text-anchor="middle" class="cpt-tt" style="font-size:8px">PEDESTAL</text>
+      <!-- Thrust levers -->
+      <rect x="148" y="164" width="11" height="20" rx="1" class="cpt-fl cpt-stk"/>
+      <rect x="201" y="164" width="11" height="20" rx="1" class="cpt-fl cpt-stk"/>
+      <text x="180" y="178" text-anchor="middle" class="cpt-lbl" style="font-size:7px">THR</text>
+      <!-- Fuel cutoff switches: small body + indicator at top (RUN) or bottom (CUTOFF) -->
+      <g id="cpt-fuel-1">
+        <rect x="150" y="190" width="11" height="22" rx="2" class="cpt-fl cpt-stk"/>
+        <rect id="cpt-fuel-1-tog" x="151.5" y="192" width="8" height="7" rx="1" class="cpt-ok"/>
+      </g>
+      <g id="cpt-fuel-2">
+        <rect x="199" y="190" width="11" height="22" rx="2" class="cpt-fl cpt-stk"/>
+        <rect id="cpt-fuel-2-tog" x="200.5" y="192" width="8" height="7" rx="1" class="cpt-ok"/>
+      </g>
+      <text x="180" y="218" text-anchor="middle" class="cpt-lbl" style="font-size:7px">FUEL CUTOFF SW</text>
+
+      <!-- Rudder pedals (always greyed out — never used) -->
+      <g id="cpt-ped-L">
+        <rect x="36" y="186" width="24" height="14" rx="2" class="cpt-grey"/>
+        <line x1="48" y1="186" x2="48" y2="200" class="cpt-grey" stroke-width="1"/>
+      </g>
+      <g id="cpt-ped-R">
+        <rect x="300" y="186" width="24" height="14" rx="2" class="cpt-grey"/>
+        <line x1="312" y1="186" x2="312" y2="200" class="cpt-grey" stroke-width="1"/>
+      </g>
+      <text x="48" y="212" text-anchor="middle" class="cpt-lbl cpt-grey-lbl" style="font-size:7px">RUDDER</text>
+      <text x="48" y="220" text-anchor="middle" class="cpt-lbl cpt-grey-lbl" style="font-size:6px">UNUSED 未踩</text>
+      <text x="312" y="212" text-anchor="middle" class="cpt-lbl cpt-grey-lbl" style="font-size:7px">RUDDER</text>
+      <text x="312" y="220" text-anchor="middle" class="cpt-lbl cpt-grey-lbl" style="font-size:6px">UNUSED 未踩</text>
+
+      <!-- Action commentary -->
+      <text id="cpt-action" x="180" y="245" text-anchor="middle" class="cpt-tt" style="font-size:8.5px">— STABLE —</text>
+    </svg>
   </div>
   <div id="event-banner"><span id="eb-msg"></span><div class="esub" id="eb-sub"></div></div>
   <div id="p-source" class="panel">
@@ -697,6 +791,83 @@ const EVT=[
 let lastEI=-1,bannerT=0;
 const eBanner=document.getElementById('event-banner'),eMsg=document.getElementById('eb-msg'),eSub=document.getElementById('eb-sub');
 const evtEls=document.querySelectorAll('.evt');
+
+/* ── COCKPIT INTERACTIONS PANEL ──
+   Per-frame state mapping based on FDR Fig 11/12/13 readings.
+   Driven by relative time tF = t − 268 (engine cutoff). */
+const cpt = {panel:null, ap1:null, ap2:null, yokeL:null, yokeR:null, fuel1:null, fuel2:null, fuel1Tog:null, fuel2Tog:null, colBar:null, colLink:null, action:null, whlVal:null};
+function cptInit(){
+  cpt.panel  = document.getElementById('p-cockpit');
+  cpt.ap1    = document.getElementById('cpt-ap1');
+  cpt.ap2    = document.getElementById('cpt-ap2');
+  cpt.yokeL  = document.getElementById('cpt-yoke-L');
+  cpt.yokeR  = document.getElementById('cpt-yoke-R');
+  cpt.fuel1  = document.getElementById('cpt-fuel-1');
+  cpt.fuel2  = document.getElementById('cpt-fuel-2');
+  cpt.fuel1Tog = document.getElementById('cpt-fuel-1-tog');
+  cpt.fuel2Tog = document.getElementById('cpt-fuel-2-tog');
+  cpt.colBar = document.getElementById('cpt-col-bar');
+  cpt.colLink= document.getElementById('cpt-col-link');
+  cpt.action = document.getElementById('cpt-action');
+  cpt.whlVal = document.getElementById('cpt-whl-val');
+}
+function updCockpit(t){
+  if(!cpt.panel||!cpt.panel.classList.contains('show'))return;
+  const tF = t - 268;
+  // Fuel cutoff switches: green RUN → red CUTOFF at T+0
+  if(tF >= 0){
+    cpt.fuel1Tog.setAttribute('class','cpt-warn');cpt.fuel1Tog.setAttribute('y','203');
+    cpt.fuel2Tog.setAttribute('class','cpt-warn');cpt.fuel2Tog.setAttribute('y','203');
+  }else{
+    cpt.fuel1Tog.setAttribute('class','cpt-ok');cpt.fuel1Tog.setAttribute('y','192');
+    cpt.fuel2Tog.setAttribute('class','cpt-ok');cpt.fuel2Tog.setAttribute('y','192');
+  }
+  // AP warnings: green ON → red blinking at T+3 (warning state) → solid red after FDR loss
+  if(tF >= 3 && tF < 21){
+    cpt.ap1.setAttribute('class','cpt-warn cpt-blink');
+    cpt.ap2.setAttribute('class','cpt-warn cpt-blink');
+  }else if(tF >= 21){
+    cpt.ap1.setAttribute('class','cpt-warn');
+    cpt.ap2.setAttribute('class','cpt-warn');
+  }else{
+    cpt.ap1.setAttribute('class','cpt-ok');
+    cpt.ap2.setAttribute('class','cpt-ok');
+  }
+  // Control wheel position (deg): derived from FDR roll-rate profile
+  //   T+3..T+11: ramp to -90° (full left input, sustained while roll builds)
+  //   T+11..T+20: relax from -90° → -30° as roll rate slows
+  //   T+20+: return to 0
+  let whlDeg = 0;
+  if(tF >= 3 && tF < 7)        whlDeg = -90 * ((tF - 3) / 4);
+  else if(tF >= 7 && tF < 11)  whlDeg = -90;
+  else if(tF >= 11 && tF < 20) whlDeg = -90 + 60 * ((tF - 11) / 9);
+  else if(tF >= 20 && tF < 22) whlDeg = -30 * Math.max(0, 1 - (tF - 20) / 1.5);
+  cpt.yokeL.setAttribute('transform', 'translate(80,100) rotate(' + whlDeg.toFixed(1) + ')');
+  cpt.yokeR.setAttribute('transform','translate(280,100) rotate(' + whlDeg.toFixed(1) + ')');
+  cpt.whlVal.textContent = whlDeg.toFixed(0) + '°';
+  // Active yoke styling: highlight yoke circles when force applied
+  const yokeOn = tF >= 3 && tF < 22;
+  cpt.yokeL.querySelector('circle').setAttribute('class', yokeOn ? 'cpt-fl-active cpt-active' : 'cpt-fl cpt-stk');
+  cpt.yokeR.querySelector('circle').setAttribute('class', yokeOn ? 'cpt-fl-active cpt-active' : 'cpt-fl cpt-stk');
+  cpt.colLink.setAttribute('class', yokeOn ? 'cpt-active' : 'cpt-stk');
+  // Column push state: ramp up over T+5..T+21 (visualized as bar widening + colour)
+  const colP = Math.max(0, Math.min(1, (tF - 5) / 16));
+  cpt.colBar.setAttribute('width', (40 + 60 * colP).toFixed(1));
+  cpt.colBar.setAttribute('x', (180 - 20 - 30 * colP).toFixed(1));
+  cpt.colBar.setAttribute('class', colP > 0 ? 'cpt-fl-active cpt-active' : 'cpt-fl cpt-stk');
+  // Action narration
+  let msg = '— STABLE —';
+  if      (tF < 0)            msg = '— STABLE 巡航中 —';
+  else if (tF < 3)            msg = '★ FUEL CUTOFF ★ 双发熄火';
+  else if (tF < 5)            msg = '★ AP DISCONNECT ★ 自驾断开';
+  else if (tF < 11)           msg = '★ SUSTAINED LEFT YOKE + COLUMN PUSH';
+  else if (tF < 20)           msg = '★ INVERTED → ROLL CONTINUES LEFT';
+  else if (tF < 21)           msg = '★ ROLL -270° → ELEVATOR DOWN';
+  else if (tF < 23)           msg = '✗ FDR POWER LOSS ✗';
+  else                        msg = '— ADS-B descent (post-FDR) —';
+  cpt.action.textContent = msg;
+}
+
 function updEvt(t){
   let ci=-1;for(let i2=EVT.length-1;i2>=0;i2--)if(t>=EVT[i2].t){ci=i2;break;}
   if(ci!==lastEI&&ci>=0){eMsg.textContent=EVT[ci].m;eSub.textContent=EVT[ci].s;eBanner.classList.add('visible');clearTimeout(bannerT);bannerT=setTimeout(()=>eBanner.classList.remove('visible'),4500);lastEI=ci;}
@@ -835,6 +1006,7 @@ function animate(ts){
   if(window._ring){window._ring.material.opacity=.4+Math.sin(ts*.003)*.3;window._ring.scale.setScalar(1+Math.sin(ts*.002)*.15);}
 
   updEvt(S.t);
+  updCockpit(S.t);
   updCam(d);
   oc.update();
   updHUD(d);
@@ -912,6 +1084,14 @@ $('src-toggle').onclick=()=>{
   const open=list.style.display!=='none';
   list.style.display=open?'none':'block';
   $('src-toggle').innerHTML='DATA FIDELITY 数据真实度 '+(open?'&#9662;':'&#9652;');
+};
+
+// Cockpit interactions panel toggle
+cptInit();
+$('btn-pedestal').onclick=()=>{
+  const open=$('p-cockpit').classList.toggle('show');
+  $('btn-pedestal').classList.toggle('active',open);
+  if(open)updCockpit(S.t);
 };
 
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);});
