@@ -70,6 +70,38 @@ canvas{display:block}
 .warning{color:#ff4444!important;animation:blink .5s infinite}
 @keyframes blink{50%{opacity:.3}}
 #loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#668;font-size:13px;text-align:center}
+
+@media(max-width:768px){
+  #p-title{padding:4px 10px;top:4px}
+  #p-title .main{font-size:11px;letter-spacing:1px}
+  #p-title .sub{font-size:8px}
+  #p-title .warn-line{display:none}
+  #p-title>div:last-child{display:none}
+
+  #p-flight{top:44px;left:6px;padding:4px 8px;min-width:auto;line-height:1.4;font-size:10px}
+  #phase-label{font-size:11px;margin-bottom:1px}
+  .lbl{width:28px;font-size:9px}
+  #p-flight>div:nth-child(4),
+  #p-flight>div:nth-child(6),
+  #p-flight>div:nth-child(7){display:none}
+
+  #p-info{display:none}
+  #p-alt{display:none}
+  #p-events{display:none}
+  #p-source{display:none}
+  .m-hide{display:none}
+
+  #p-controls{padding:6px 8px;bottom:4px}
+  .btn{padding:3px 7px;font-size:9px}
+  .btn-row{gap:3px;margin-bottom:4px}
+  .sep{margin:0 1px}
+  #timeline{width:88vw;height:6px}
+  #timeline-marker{width:14px;height:14px;top:-5px}
+  #time-text{font-size:9px}
+
+  #event-banner{top:40px;font-size:10px;padding:4px 12px}
+  .esub{font-size:7px}
+}
 </style>
 </head>
 <body>
@@ -120,7 +152,7 @@ canvas{display:block}
       <button class="btn cam-btn" id="cam-cockpit">FPV</button>
     </div>
     <div id="timeline"><div id="timeline-fill"></div><div id="timeline-marker"></div></div>
-    <div id="time-text"><span id="v-elapsed">00:00</span> / <span id="v-total">--:--</span> &ensp;|&ensp; Orbit: drag &ensp; Zoom: scroll &ensp; Seek: click bar</div>
+    <div id="time-text"><span id="v-elapsed">00:00</span> / <span id="v-total">--:--</span><span class="m-hide"> &ensp;|&ensp; Orbit: drag &ensp; Zoom: scroll &ensp; Seek: click bar</span></div>
   </div>
   <div id="p-events" class="panel">
     <div class="ehdr">FDR / ADS-B EVENTS 事件时间线</div>
