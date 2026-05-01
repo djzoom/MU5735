@@ -148,12 +148,19 @@ canvas{display:block}
    horizontal grip cylinders at the corners, integrated buttons.
    Matte-black painted aluminium feel via SVG gradients.
    Push = wheel translates DOWN; Pull = UP; Roll = rotate around hub. */
+/* Depth layers — back/shadow elements drawn first, foreground on top */
+.yk-column{fill:#0a0a0a;stroke:#222;stroke-width:.4}            /* column shaft visible behind hub */
+.yk-column-end{fill:#161616;stroke:#080808;stroke-width:.3}     /* shaft end ellipse */
+.yk-hub-back{fill:#0a0a0a;opacity:.85}                          /* back-shadow under hub */
+.yk-grip-back{fill:#070707;opacity:.85}                         /* back-shadow behind grips */
 .yk-arm{fill:none;stroke:url(#ykArmGrad);stroke-width:9;stroke-linecap:round}
-.yk-mount{fill:url(#ykMatteGrad);stroke:#1a1a1a;stroke-width:.7}
-.yk-badge{fill:#0a0a0a;stroke:#1a1a1a;stroke-width:.4}
-.yk-grip{fill:url(#ykGripGrad);stroke:#080808;stroke-width:.6}
-.yk-grip-hi{fill:rgba(255,255,255,.12);stroke:none}
-.yk-grip-end{fill:#1a1a1a;stroke:#080808;stroke-width:.4}    /* outer cap */
+.yk-arm-shadow{fill:none;stroke:#000;stroke-width:10;stroke-linecap:round;opacity:.55}
+.yk-mount{fill:url(#ykMatteGrad);stroke:#0a0a0a;stroke-width:.7}
+.yk-badge{fill:#040404;stroke:#1a1a1a;stroke-width:.4}
+.yk-grip{fill:url(#ykGripGrad);stroke:#000;stroke-width:.6}     /* vertical cylinder body */
+.yk-grip-hi{fill:rgba(255,255,255,.18);stroke:none}             /* vertical highlight strip */
+.yk-grip-cap{fill:#1c1c1c;stroke:#000;stroke-width:.4}          /* top end cap of grip */
+.yk-grip-cap-hi{fill:rgba(255,255,255,.08);stroke:none}
 .yk-logo{fill:#3aa9d8;font-size:9px;font-family:'Arial Black',sans-serif;font-weight:bold;letter-spacing:0}
 .yk-logo-sub{fill:#3aa9d8;font-size:3.2px;font-family:'Arial',sans-serif;letter-spacing:.4px}
 .yk-btn-ap{fill:#e62020;stroke:#5a0606;stroke-width:.4}
@@ -338,24 +345,23 @@ canvas{display:block}
              CUTOFF = lever at lower-LEFT (+200°). Pilot lifts the cap up-right,
              rotates clockwise through ~180°, and seats it into lower-left. -->
         <g id="fsw-1" transform="translate(60,80)">
-          <text class="fsw-lbl-eng" x="0" y="-58" text-anchor="middle">ENG 1</text>
-          <text class="fsw-lbl fsw-lbl-run"    x="22"  y="-46" text-anchor="middle">RUN ↗</text>
-          <text class="fsw-lbl fsw-lbl-cutoff" x="-22" y="22"  text-anchor="middle">↙ CUTOFF</text>
-          <line class="fsw-detent" x1="-13" y1="0" x2="-5" y2="0"/>
-          <line class="fsw-detent" x1="5" y1="0" x2="13" y2="0"/>
+          <text class="fsw-lbl-eng" x="0" y="-50" text-anchor="middle">ENG 1</text>
+          <text class="fsw-lbl fsw-lbl-run"    x="20" y="-22" text-anchor="middle">RUN</text>
+          <text class="fsw-lbl fsw-lbl-cutoff" x="22" y="22"  text-anchor="middle">CUTOFF</text>
+          <line class="fsw-detent" x1="6" y1="-2" x2="14" y2="2"/>
           <rect class="fsw-base" x="-7" y="-3" width="14" height="9" rx="1"/>
-          <g id="fsw-1-tog" transform="rotate(20)">
-            <rect class="fsw-stem" x="-1.6" y="-15" width="3.2" height="15" rx=".7"/>
-            <!-- Chunky mushroom cap: nearly spherical, slightly flattened -->
-            <ellipse class="fsw-cap" cx="0" cy="-19" rx="6.5" ry="5.5"/>
-            <!-- Glossy highlight -->
-            <ellipse class="fsw-cap-hi" cx="0" cy="-22.5" rx="3" ry="1.2"/>
-            <!-- Red LED indicator -->
-            <circle class="fsw-led" cx="0" cy="-22.5" r=".9"/>
-            <!-- Red X mark (lights up only in CUTOFF position) -->
-            <g id="fsw-1-x" class="fsw-x">
-              <line x1="-3.2" y1="-22" x2="3.2" y2="-16"/>
-              <line x1="3.2" y1="-22" x2="-3.2" y2="-16"/>
+          <g id="fsw-1-tog" transform="rotate(60)">
+            <!-- Stem grows when lever is "pulled out" (extension phase) -->
+            <rect id="fsw-1-stem" class="fsw-stem" x="-1.6" y="-15" width="3.2" height="15" rx=".7"/>
+            <!-- Head group: translates UP during extension to match stem growth -->
+            <g id="fsw-1-head" transform="translate(0,0)">
+              <ellipse class="fsw-cap" cx="0" cy="-19" rx="6.5" ry="5.5"/>
+              <ellipse class="fsw-cap-hi" cx="0" cy="-22.5" rx="3" ry="1.2"/>
+              <circle class="fsw-led" cx="0" cy="-22.5" r=".9"/>
+              <g id="fsw-1-x" class="fsw-x">
+                <line x1="-3.2" y1="-22" x2="3.2" y2="-16"/>
+                <line x1="3.2" y1="-22" x2="-3.2" y2="-16"/>
+              </g>
             </g>
           </g>
           <!-- Skirt collar around the base (lifts vertically when actuating) -->
@@ -371,20 +377,21 @@ canvas{display:block}
         </g>
         <!-- Switch 2 — ENG 2 (same RUN ↗ → ↙ CUTOFF motion) -->
         <g id="fsw-2" transform="translate(140,80)">
-          <text class="fsw-lbl-eng" x="0" y="-58" text-anchor="middle">ENG 2</text>
-          <text class="fsw-lbl fsw-lbl-run"    x="22"  y="-46" text-anchor="middle">RUN ↗</text>
-          <text class="fsw-lbl fsw-lbl-cutoff" x="-22" y="22"  text-anchor="middle">↙ CUTOFF</text>
-          <line class="fsw-detent" x1="-13" y1="0" x2="-5" y2="0"/>
-          <line class="fsw-detent" x1="5" y1="0" x2="13" y2="0"/>
+          <text class="fsw-lbl-eng" x="0" y="-50" text-anchor="middle">ENG 2</text>
+          <text class="fsw-lbl fsw-lbl-run"    x="20" y="-22" text-anchor="middle">RUN</text>
+          <text class="fsw-lbl fsw-lbl-cutoff" x="22" y="22"  text-anchor="middle">CUTOFF</text>
+          <line class="fsw-detent" x1="6" y1="-2" x2="14" y2="2"/>
           <rect class="fsw-base" x="-7" y="-3" width="14" height="9" rx="1"/>
-          <g id="fsw-2-tog" transform="rotate(20)">
-            <rect class="fsw-stem" x="-1.6" y="-15" width="3.2" height="15" rx=".7"/>
-            <ellipse class="fsw-cap" cx="0" cy="-19" rx="6.5" ry="5.5"/>
-            <ellipse class="fsw-cap-hi" cx="0" cy="-22.5" rx="3" ry="1.2"/>
-            <circle class="fsw-led" cx="0" cy="-22.5" r=".9"/>
-            <g id="fsw-2-x" class="fsw-x">
-              <line x1="-3.2" y1="-22" x2="3.2" y2="-16"/>
-              <line x1="3.2" y1="-22" x2="-3.2" y2="-16"/>
+          <g id="fsw-2-tog" transform="rotate(60)">
+            <rect id="fsw-2-stem" class="fsw-stem" x="-1.6" y="-15" width="3.2" height="15" rx=".7"/>
+            <g id="fsw-2-head" transform="translate(0,0)">
+              <ellipse class="fsw-cap" cx="0" cy="-19" rx="6.5" ry="5.5"/>
+              <ellipse class="fsw-cap-hi" cx="0" cy="-22.5" rx="3" ry="1.2"/>
+              <circle class="fsw-led" cx="0" cy="-22.5" r=".9"/>
+              <g id="fsw-2-x" class="fsw-x">
+                <line x1="-3.2" y1="-22" x2="3.2" y2="-16"/>
+                <line x1="3.2" y1="-22" x2="-3.2" y2="-16"/>
+              </g>
             </g>
           </g>
           <g id="fsw-2-skirt" transform="translate(0,0)">
@@ -412,33 +419,45 @@ canvas{display:block}
         <g id="yoke-L-tilt" transform="translate(0,0)">
           <!-- Yoke (rotates for roll around its hub centre) -->
           <g id="yoke-L-rot" transform="translate(80,80) rotate(0)">
-            <!-- Two ergonomic curved arms emerging from hub upper sides -->
-            <path class="yk-arm" d="M -10 -8 Q -25 -10 -34 -16"/>
-            <path class="yk-arm" d="M  10 -8 Q  25 -10  34 -16"/>
-            <!-- Central RECTANGULAR HUB / column mount + badge plate -->
-            <rect class="yk-mount" x="-10" y="-15" width="20" height="32" rx="3.5"/>
-            <rect class="yk-badge" x="-8" y="-12" width="16" height="22" rx="2"/>
+            <!-- Layer 1 (deepest BACK): column shaft mounting visible behind hub -->
+            <rect class="yk-column" x="-7" y="6" width="14" height="22" rx="2"/>
+            <ellipse class="yk-column-end" cx="0" cy="28" rx="7" ry="2.4"/>
+            <!-- Layer 2: hub back-shadow (wider, darker, behind front face) -->
+            <rect class="yk-hub-back" x="-13" y="-18" width="26" height="36" rx="4"/>
+            <!-- Layer 3: arms (back shadow first, then bright stroke on top) -->
+            <path class="yk-arm-shadow" d="M -11 -2 Q -22 6 -34 -4 Q -40 -10 -40 -16"/>
+            <path class="yk-arm-shadow" d="M  11 -2 Q  22 6  34 -4 Q  40 -10  40 -16"/>
+            <path class="yk-arm" d="M -11 -2 Q -22 6 -34 -4 Q -40 -10 -40 -16"/>
+            <path class="yk-arm" d="M  11 -2 Q  22 6  34 -4 Q  40 -10  40 -16"/>
+            <!-- Layer 4: grip back-shadow (depth — grips sit forward/right of hub) -->
+            <rect class="yk-grip-back" x="-43" y="-26" width="9" height="22" rx="3.5"/>
+            <rect class="yk-grip-back" x="34" y="-26" width="9" height="22" rx="3.5"/>
+            <!-- Layer 5: VERTICAL grip cylinders (tall handles pilots actually grasp) -->
+            <rect class="yk-grip" x="-44" y="-28" width="9" height="22" rx="3.5"/>
+            <rect class="yk-grip-hi" x="-43" y="-26" width="2" height="18" rx="1"/>
+            <ellipse class="yk-grip-cap" cx="-39.5" cy="-28" rx="4.5" ry="1.6"/>
+            <ellipse class="yk-grip-cap-hi" cx="-40" cy="-28.5" rx="2.5" ry=".5"/>
+            <rect class="yk-grip" x="35" y="-28" width="9" height="22" rx="3.5"/>
+            <rect class="yk-grip-hi" x="36" y="-26" width="2" height="18" rx="1"/>
+            <ellipse class="yk-grip-cap" cx="39.5" cy="-28" rx="4.5" ry="1.6"/>
+            <ellipse class="yk-grip-cap-hi" cx="40" cy="-28.5" rx="2.5" ry=".5"/>
+            <!-- Layer 6: chunky front HUB face + recessed badge plate -->
+            <rect class="yk-mount" x="-11" y="-16" width="22" height="32" rx="3.5"/>
+            <rect class="yk-badge" x="-9" y="-13" width="18" height="22" rx="2"/>
             <text class="yk-logo" x="0" y="-2" text-anchor="middle">Q</text>
             <text class="yk-logo-sub" x="0" y="6" text-anchor="middle">B737</text>
-            <!-- Grip blocks at arm ends (horizontal cylinder shape) -->
-            <rect class="yk-grip" x="-44" y="-22" width="14" height="11" rx="3"/>
-            <rect class="yk-grip-hi" x="-43" y="-21.5" width="12" height="2.2" rx=".8"/>
-            <rect class="yk-grip-end" x="-46" y="-20" width="3" height="7" rx="1"/>
-            <rect class="yk-grip" x="30" y="-22" width="14" height="11" rx="3"/>
-            <rect class="yk-grip-hi" x="31" y="-21.5" width="12" height="2.2" rx=".8"/>
-            <rect class="yk-grip-end" x="43" y="-20" width="3" height="7" rx="1"/>
-            <!-- Grip controls per real cockpit layout: -->
-            <!--  red AP disconnect (front face)  -->
-            <circle class="yk-btn-ap" cx="-32" cy="-13" r="1.8"/>
-            <circle class="yk-btn-ap-hi" cx="-32.5" cy="-13.5" r=".6"/>
-            <circle class="yk-btn-ap" cx="32" cy="-13" r="1.8"/>
-            <circle class="yk-btn-ap-hi" cx="31.5" cy="-13.5" r=".6"/>
-            <!--  trim switch (top edge) -->
-            <rect class="yk-btn-trim" x="-42" y="-25" width="11" height="2.4" rx=".5"/>
-            <rect class="yk-btn-trim" x="31" y="-25" width="11" height="2.4" rx=".5"/>
-            <!--  PTT (inner-side bump) -->
-            <rect class="yk-btn-ptt" x="-30.5" y="-19" width="3" height="2" rx=".3"/>
-            <rect class="yk-btn-ptt" x="27.5" y="-19" width="3" height="2" rx=".3"/>
+            <!-- Layer 7: grip controls (foreground buttons) -->
+            <!--  red AP disconnect — top-front of grip, thumb position -->
+            <circle class="yk-btn-ap" cx="-39.5" cy="-21" r="2"/>
+            <circle class="yk-btn-ap-hi" cx="-40" cy="-21.5" r=".7"/>
+            <circle class="yk-btn-ap" cx="39.5" cy="-21" r="2"/>
+            <circle class="yk-btn-ap-hi" cx="39" cy="-21.5" r=".7"/>
+            <!--  trim switch — outer side, mid-grip -->
+            <rect class="yk-btn-trim" x="-44" y="-15" width="2.5" height="6" rx=".5"/>
+            <rect class="yk-btn-trim" x="41.5" y="-15" width="2.5" height="6" rx=".5"/>
+            <!--  PTT — lower-inner side -->
+            <rect class="yk-btn-ptt" x="-37" y="-10" width="2" height="3" rx=".3"/>
+            <rect class="yk-btn-ptt" x="35" y="-10" width="2" height="3" rx=".3"/>
           </g>
         </g>
         <!-- Captain force arrows (cyan) — translate with wheel via tilt group -->
@@ -461,26 +480,35 @@ canvas{display:block}
         <text x="98" y="83" class="yk-lbl" style="font-size:5px;fill:rgba(180,200,180,.7)">NEUTRAL</text>
         <g id="yoke-R-tilt" transform="translate(0,0)">
           <g id="yoke-R-rot" transform="translate(80,80) rotate(0)">
-            <path class="yk-arm" d="M -10 -8 Q -25 -10 -34 -16"/>
-            <path class="yk-arm" d="M  10 -8 Q  25 -10  34 -16"/>
-            <rect class="yk-mount" x="-10" y="-15" width="20" height="32" rx="3.5"/>
-            <rect class="yk-badge" x="-8" y="-12" width="16" height="22" rx="2"/>
+            <rect class="yk-column" x="-7" y="6" width="14" height="22" rx="2"/>
+            <ellipse class="yk-column-end" cx="0" cy="28" rx="7" ry="2.4"/>
+            <rect class="yk-hub-back" x="-13" y="-18" width="26" height="36" rx="4"/>
+            <path class="yk-arm-shadow" d="M -11 -2 Q -22 6 -34 -4 Q -40 -10 -40 -16"/>
+            <path class="yk-arm-shadow" d="M  11 -2 Q  22 6  34 -4 Q  40 -10  40 -16"/>
+            <path class="yk-arm" d="M -11 -2 Q -22 6 -34 -4 Q -40 -10 -40 -16"/>
+            <path class="yk-arm" d="M  11 -2 Q  22 6  34 -4 Q  40 -10  40 -16"/>
+            <rect class="yk-grip-back" x="-43" y="-26" width="9" height="22" rx="3.5"/>
+            <rect class="yk-grip-back" x="34" y="-26" width="9" height="22" rx="3.5"/>
+            <rect class="yk-grip" x="-44" y="-28" width="9" height="22" rx="3.5"/>
+            <rect class="yk-grip-hi" x="-43" y="-26" width="2" height="18" rx="1"/>
+            <ellipse class="yk-grip-cap" cx="-39.5" cy="-28" rx="4.5" ry="1.6"/>
+            <ellipse class="yk-grip-cap-hi" cx="-40" cy="-28.5" rx="2.5" ry=".5"/>
+            <rect class="yk-grip" x="35" y="-28" width="9" height="22" rx="3.5"/>
+            <rect class="yk-grip-hi" x="36" y="-26" width="2" height="18" rx="1"/>
+            <ellipse class="yk-grip-cap" cx="39.5" cy="-28" rx="4.5" ry="1.6"/>
+            <ellipse class="yk-grip-cap-hi" cx="40" cy="-28.5" rx="2.5" ry=".5"/>
+            <rect class="yk-mount" x="-11" y="-16" width="22" height="32" rx="3.5"/>
+            <rect class="yk-badge" x="-9" y="-13" width="18" height="22" rx="2"/>
             <text class="yk-logo" x="0" y="-2" text-anchor="middle">Q</text>
             <text class="yk-logo-sub" x="0" y="6" text-anchor="middle">B737</text>
-            <rect class="yk-grip" x="-44" y="-22" width="14" height="11" rx="3"/>
-            <rect class="yk-grip-hi" x="-43" y="-21.5" width="12" height="2.2" rx=".8"/>
-            <rect class="yk-grip-end" x="-46" y="-20" width="3" height="7" rx="1"/>
-            <rect class="yk-grip" x="30" y="-22" width="14" height="11" rx="3"/>
-            <rect class="yk-grip-hi" x="31" y="-21.5" width="12" height="2.2" rx=".8"/>
-            <rect class="yk-grip-end" x="43" y="-20" width="3" height="7" rx="1"/>
-            <circle class="yk-btn-ap" cx="-32" cy="-13" r="1.8"/>
-            <circle class="yk-btn-ap-hi" cx="-32.5" cy="-13.5" r=".6"/>
-            <circle class="yk-btn-ap" cx="32" cy="-13" r="1.8"/>
-            <circle class="yk-btn-ap-hi" cx="31.5" cy="-13.5" r=".6"/>
-            <rect class="yk-btn-trim" x="-42" y="-25" width="11" height="2.4" rx=".5"/>
-            <rect class="yk-btn-trim" x="31" y="-25" width="11" height="2.4" rx=".5"/>
-            <rect class="yk-btn-ptt" x="-30.5" y="-19" width="3" height="2" rx=".3"/>
-            <rect class="yk-btn-ptt" x="27.5" y="-19" width="3" height="2" rx=".3"/>
+            <circle class="yk-btn-ap" cx="-39.5" cy="-21" r="2"/>
+            <circle class="yk-btn-ap-hi" cx="-40" cy="-21.5" r=".7"/>
+            <circle class="yk-btn-ap" cx="39.5" cy="-21" r="2"/>
+            <circle class="yk-btn-ap-hi" cx="39" cy="-21.5" r=".7"/>
+            <rect class="yk-btn-trim" x="-44" y="-15" width="2.5" height="6" rx=".5"/>
+            <rect class="yk-btn-trim" x="41.5" y="-15" width="2.5" height="6" rx=".5"/>
+            <rect class="yk-btn-ptt" x="-37" y="-10" width="2" height="3" rx=".3"/>
+            <rect class="yk-btn-ptt" x="35" y="-10" width="2" height="3" rx=".3"/>
           </g>
         </g>
         <path id="yk-R-roll-arc" class="yk-force fo" d="M 50 60 Q 80 35 110 60"/>
@@ -1025,7 +1053,7 @@ const evtEls=document.querySelectorAll('.evt');
    fuel switch with detent fence, etc).
    tF = t − 268 (engine cutoff = T+0). */
 const act = {strip:null,
-  fuelCard:null, fuel1Tog:null, fuel2Tog:null, fuel1Skirt:null, fuel2Skirt:null, fuel1Hand:null, fuel2Hand:null, fuelStatus:null, fuelSvg:null, fuelFlashed:false,
+  fuelCard:null, fuel1Tog:null, fuel2Tog:null, fuel1Skirt:null, fuel2Skirt:null, fuel1Hand:null, fuel2Hand:null, fuel1Stem:null, fuel2Stem:null, fuel1Head:null, fuel2Head:null, fuelStatus:null, fuelSvg:null, fuelFlashed:false,
   apCard:null, apLight1:null, apLight2:null, apStatus:null, apSvg:null, apFlashed:false,
   // Captain yoke+column (left)
   yokeLCard:null, yokeLTilt:null, yokeLRot:null, yokeLStatus:null,
@@ -1046,6 +1074,10 @@ function actInit(){
   act.fuel2Skirt = document.getElementById('fsw-2-skirt');
   act.fuel1Hand  = document.getElementById('fsw-1-hand');
   act.fuel2Hand  = document.getElementById('fsw-2-hand');
+  act.fuel1Stem  = document.getElementById('fsw-1-stem');
+  act.fuel2Stem  = document.getElementById('fsw-2-stem');
+  act.fuel1Head  = document.getElementById('fsw-1-head');
+  act.fuel2Head  = document.getElementById('fsw-2-head');
   act.fuelStatus = document.getElementById('fsw-status');
   // AP indicators
   act.apCard     = document.getElementById('card-ap');
@@ -1094,39 +1126,56 @@ function updFuelCard(t){
   //   tF ∈ [0,0.4]: rapid pivot 0°→180° (toggle flips through the fence)
   //   tF ∈ [0.4,1]: skirt resettles in CUTOFF position
   //   tF > 1      : CUTOFF, locked (toggle at 180°, skirt seated)
-  // Lever rotation: RUN = +20° (head at upper-RIGHT),
-  // CUTOFF = +200° (head at lower-LEFT, mirror across pivot).
-  // Operation: 1) lift up-right, 2) rotate CW through ~180°,
-  // 3) seat in lower-left lock. Must clear detent fence first.
-  let togDeg = 20;
+  // 4-phase mushroom-head fuel-switch animation:
+  //   Phase 1  (tF < -1)        : RUN — points 2 o'clock (60°), normal length
+  //   Phase 2  (tF -1..-0.4)    : PULL OUT — extends 0→6px, still 60°
+  //   Phase 3  (tF -0.4..+0.4)  : ROTATE — held extended, sweeps 60°→120°
+  //   Phase 4  (tF +0.4..+1)    : SETTLE — retracts 6→0px, locks at 120°,
+  //                               red X-mark fades in (engine off indicator)
+  //   Stable   (tF > +1)        : CUTOFF · LOCKED, X visible, red light on
+  let togDeg = 60;
   let skirtY = 0;
+  let ext = 0;          // stem extension in px (0 = retracted, 6 = fully out)
   let handOn = false;
   let status, statusColor;
   if (tF < -1) {
-    status = 'RUN · LOCKED'; statusColor = '#9bd09b';
-  } else if (tF < 0) {
-    const p = (tF + 1);
-    skirtY = -6 * p;
+    status = 'RUN · 2点钟 LOCKED'; statusColor = '#9bd09b';
+  } else if (tF < -0.4) {
+    const p = (tF + 1) / 0.6;
+    ext = 6 * p;
+    skirtY = -3 * p;
     handOn = true;
-    status = 'PILOT LIFTS · 拔出'; statusColor = '#ffaa44';
+    status = 'PULL OUT · 拔出'; statusColor = '#ffaa44';
   } else if (tF < 0.4) {
-    const p = tF / 0.4;
-    togDeg = 20 + 180 * p;          // +20° → +200° (CW swing)
-    skirtY = -6 + 4 * p;
+    const p = (tF + 0.4) / 0.8;
+    togDeg = 60 + 60 * p;          // 60° → 120° (CW swing through 3 o'clock fence)
+    ext = 6;
+    skirtY = -3;
     handOn = true;
-    status = 'ROTATE → CUTOFF · 旋转切断'; statusColor = '#ff4444';
-    if (!act.fuelFlashed) { flashEl(act.fuelSvg, 'flash-red'); act.fuelFlashed = true; }
+    status = 'ROTATE 2点 → 4点 · 旋转'; statusColor = '#ff4444';
+    if (!act.fuelFlashed && tF >= 0) { flashEl(act.fuelSvg, 'flash-red'); act.fuelFlashed = true; }
   } else if (tF < 1) {
     const p = (tF - 0.4) / 0.6;
-    togDeg = 200;
-    skirtY = -2 + 2 * p;
-    status = 'CUTOFF · LOCKED'; statusColor = '#ff5555';
+    togDeg = 120;
+    ext = 6 * (1 - p);             // retract 6 → 0
+    skirtY = -3 * (1 - p);
+    status = 'SEAT · CUTOFF 4点钟 切断'; statusColor = '#ff5555';
   } else {
-    togDeg = 200;
-    status = 'ENG 1 + 2 · CUTOFF'; statusColor = '#ff5555';
+    togDeg = 120;
+    status = 'ENG 1 + 2 · CUTOFF · 双发熄火'; statusColor = '#ff5555';
   }
-  // Red X warning mark fades in once the lever crosses the halfway point
-  const xOpacity = Math.max(0, Math.min(1, (togDeg - 100) / 60));
+  // Red X mark only appears as the lever retracts in phase 4 (engine confirmed off)
+  let xOpacity = 0;
+  if (togDeg > 100) xOpacity = Math.max(0, Math.min(1, 1 - ext / 6));
+  // Apply stem extension: stem grows up, head group translates up by same amount
+  if (act.fuel1Stem) {
+    act.fuel1Stem.setAttribute('y', (-15 - ext).toFixed(1));
+    act.fuel1Stem.setAttribute('height', (15 + ext).toFixed(1));
+    act.fuel2Stem.setAttribute('y', (-15 - ext).toFixed(1));
+    act.fuel2Stem.setAttribute('height', (15 + ext).toFixed(1));
+    act.fuel1Head.setAttribute('transform', 'translate(0,' + (-ext).toFixed(1) + ')');
+    act.fuel2Head.setAttribute('transform', 'translate(0,' + (-ext).toFixed(1) + ')');
+  }
   const x1 = document.getElementById('fsw-1-x');
   const x2 = document.getElementById('fsw-2-x');
   if (x1) x1.style.opacity = xOpacity.toFixed(2);
@@ -1231,7 +1280,9 @@ function _foPitchForce(tF){
 // Captain-vs-F/O magnitude difference becomes visible (the inconsistency).
 function _updYoke(card, tiltG, rotG, statusEl, rollArc, rollTip, pitchArc, pitchTip,
                   tF, whlDeg, pushPx, rollForce, pitchForce, sideClass){
-  const visible = tF >= 1 && tF <= 22;
+  // Keep the yoke shown through FDR window AND a few seconds past power loss
+  // so the extreme position stays on screen while attitude is still extreme.
+  const visible = tF >= 1 && tF <= 28;
   setCard(card, visible);
   if(!visible) return;
   // Mechanical position (identical on both yokes — physically linked):
@@ -1302,7 +1353,7 @@ function updYokeCards(t){
            tF, whlDeg, pushPx, fR, fP, 'fo');
   // Central badge: DUAL INPUT only (no fabricated FIGHTING upgrade — opposing
   // direction moments are not clearly visible in the public NTSB figure).
-  setCard(act.dualCard, tF >= 3 && tF <= 22);
+  setCard(act.dualCard, tF >= 3 && tF <= 28);
 }
 
 function updActions(t){
