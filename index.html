@@ -430,7 +430,8 @@ function makeCrashMarker(){
 
 /* ── flight path ── */
 function makeFlightPath(){
-  const cruP=pts.slice(0,DI+1).map(p=>p.p);
+  const cruP=[];const cruN=50;
+  for(let j=0;j<=cruN;j++){const tt=START_T+(pts[DI].dt-START_T)*j/cruN;cruP.push(curve.getPoint(t2u(tt)));}
   scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cruP),
     new THREE.LineBasicMaterial({color:0x00cc66,transparent:true,opacity:.5})));
   const desP=[];const N2=400;
