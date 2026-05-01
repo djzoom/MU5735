@@ -1051,23 +1051,46 @@ function makeAdsLabel(pt){
   document.getElementById('hud').appendChild(div);
   return { div: div, pos: pt.p.clone(), yOffset: 1.6 };
 }
-// Per-frame: project each ADS-B label's world position to screen 2D and
-// position its DOM element. Hide if behind the camera or off-screen.
-const _adsProj = new THREE.Vector3();
+// Per-frame: project each ADS-B label to screen 2D, position its DOM
+// element, scale it by distance (perspective) and hide it when occluded
+// by the aircraft model.
+const _adsProj  = new THREE.Vector3();
+const _adsAcPos = new THREE.Vector3();
+const _adsAcProj= new THREE.Vector3();
 function updAdsLabels(){
+  // Aircraft model world position + screen projection (for occlusion test)
+  AG.getWorldPosition(_adsAcPos);
+  const camToAc = cam.position.distanceTo(_adsAcPos);
+  _adsAcProj.copy(_adsAcPos).project(cam);
+  // Aircraft on-screen pixel half-radius (rough angular diameter / 2).
+  // Model length ≈ 2.4 units; cam.fov is vertical FOV in deg.
+  const acRadiusPx = (1.5 / camToAc) * innerHeight / (2 * Math.tan(cam.fov * Math.PI / 360));
   for (let i = 0; i < adsLabels.length; i++) {
     const l = adsLabels[i];
     _adsProj.copy(l.pos);
     _adsProj.y += l.yOffset;
+    const camToLabel = cam.position.distanceTo(_adsProj);
     _adsProj.project(cam);
+    // Cull if behind camera or off-screen
     const off = _adsProj.z > 1 || Math.abs(_adsProj.x) > 1.05 || Math.abs(_adsProj.y) > 1.05;
-    if (off) {
+    // Occlusion: label is FURTHER than aircraft AND projects within the
+    // aircraft's screen footprint → hide (label sits "behind" the model).
+    let occluded = false;
+    if (!off && camToLabel > camToAc) {
+      const dx = (_adsAcProj.x - _adsProj.x) * innerWidth  / 2;
+      const dy = (_adsAcProj.y - _adsProj.y) * innerHeight / 2;
+      if (dx*dx + dy*dy < acRadiusPx * acRadiusPx) occluded = true;
+    }
+    if (off || occluded) {
       if (l.div.style.display !== 'none') l.div.style.display = 'none';
     } else {
       if (l.div.style.display === 'none') l.div.style.display = 'block';
       const x = (_adsProj.x + 1) * 0.5 * innerWidth;
       const y = (-_adsProj.y + 1) * 0.5 * innerHeight;
-      l.div.style.transform = 'translate(-50%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+      // Perspective scale: closer = larger. Reference dist 30u → scale 1.0;
+      // clamped to [0.55, 1.7] so labels stay readable but don't dominate.
+      const scale = Math.max(0.55, Math.min(1.7, 30 / camToLabel));
+      l.div.style.transform = 'translate(-50%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + scale.toFixed(2) + ')';
     }
   }
 }
